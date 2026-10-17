@@ -5,7 +5,7 @@ namespace Zapret.Core;
 
 public enum ServiceState { NotInstalled, Stopped, StartPending, Running, StopPending }
 
-/// <summary>Управление службами Windows. Реальная реализация — через sc.exe и ServiceController.</summary>
+/// <summary>Управление службами Windows. Реальная реализация - через sc.exe и ServiceController.</summary>
 public interface IServiceControl
 {
     ServiceState GetState(string name);
@@ -58,14 +58,14 @@ public sealed class WindowsServiceControl(ICommandRunner runner) : IServiceContr
             throw new InvalidOperationException($"Не удалось установить службу {name}: {create.Output.Trim()}");
 
         await runner.RunAsync("sc.exe", ["description", name, description], ct);
-        // Если winws упадёт — Windows сама перезапустит его через 5 секунд.
+        // Если winws упадёт - Windows сама перезапустит его через 5 секунд.
         await runner.RunAsync("sc.exe", ["failure", name, "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/30000"], ct);
     }
 
     public async Task StartAsync(string name, CancellationToken ct = default)
     {
         using var sc = new ServiceController(name);
-        // Сразу после входа в Windows служба может ещё стартовать сама — тогда просто ждём.
+        // Сразу после входа в Windows служба может ещё стартовать сама - тогда просто ждём.
         if (sc.Status == ServiceControllerStatus.Stopped) sc.Start();
         try
         {
@@ -92,7 +92,7 @@ public sealed class WindowsServiceControl(ICommandRunner runner) : IServiceContr
         var result = await runner.RunAsync("sc.exe", ["delete", name], ct);
         if (!result.Success && GetState(name) != ServiceState.NotInstalled)
             throw new InvalidOperationException($"Не удалось удалить службу {name}: {result.Output.Trim()}");
-        // Удаление завершается, когда закроются все дескрипторы службы — ждём до 10 секунд.
+        // Удаление завершается, когда закроются все дескрипторы службы - ждём до 10 секунд.
         for (var i = 0; i < 20 && GetState(name) != ServiceState.NotInstalled; i++)
             await Task.Delay(500, ct);
     }

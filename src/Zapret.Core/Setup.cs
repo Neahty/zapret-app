@@ -7,7 +7,7 @@ using System.Security.Principal;
 namespace Zapret.Core;
 
 /// <summary>
-/// Запуск приложения при входе в Windows через Планировщик задач — с правами администратора,
+/// Запуск приложения при входе в Windows через Планировщик задач - с правами администратора,
 /// но без окна UAC. Задача не останавливается на батарее и не ограничена по времени.
 /// </summary>
 public interface IAppAutostart
@@ -93,7 +93,7 @@ public static class AppDeployment
         var dst = Path.GetFullPath(targetDir).TrimEnd(Path.DirectorySeparatorChar);
         if (string.Equals(src, dst, StringComparison.OrdinalIgnoreCase)) return Path.Combine(dst, exeName);
 
-        foreach (var file in Directory.EnumerateFiles(src, "*", SearchOption.AllDirectories))
+        foreach (var file in AppFiles(src, exeName))
         {
             var to = Path.Combine(dst, Path.GetRelativePath(src, file));
             var from = new FileInfo(file);
@@ -104,15 +104,37 @@ public static class AppDeployment
         }
         return Path.Combine(dst, exeName);
     }
+
+    private static readonly string[] AppExtensions = [".dll", ".json", ".pdb"];
+
+    /// <summary>
+    /// Только файлы самого приложения: человек может запустить exe прямо из «Загрузок»,
+    /// и тогда копировать всю папку в Program Files было бы катастрофой.
+    /// </summary>
+    internal static IEnumerable<string> AppFiles(string dir, string exeName)
+    {
+        foreach (var file in Directory.EnumerateFiles(dir))
+        {
+            var name = Path.GetFileName(file);
+            if (string.Equals(name, exeName, StringComparison.OrdinalIgnoreCase) ||
+                AppExtensions.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase))
+                yield return file;
+        }
+        // Платформенные сборки .NET-пакетов (например, ServiceController) лежат в runtimes.
+        var runtimes = Path.Combine(dir, "runtimes");
+        if (Directory.Exists(runtimes))
+            foreach (var file in Directory.EnumerateFiles(runtimes, "*", SearchOption.AllDirectories))
+                yield return file;
+    }
 }
 
 /// <summary>
 /// Не удалось распаковать winws.exe / WinDivert. Приложение к этому моменту уже работает с правами
-/// администратора, поэтому самая частая оставшаяся причина — антивирус.
+/// администратора, поэтому самая частая оставшаяся причина - антивирус.
 /// </summary>
 public sealed class AntivirusBlockedException(string folder, Exception? inner) : Exception(
     "Не удалось распаковать файлы zapret (winws.exe / WinDivert). Чаще всего их блокирует антивирус: " +
-    "так он реагирует на любые программы обхода блокировок.\n\nЕсли у вас Kaspersky или другой антивирус — " +
+    "так он реагирует на любые программы обхода блокировок.\n\nЕсли у вас Kaspersky или другой антивирус - " +
     $"добавьте папку {folder} в его исключения и запустите приложение снова." +
     (inner is null ? "" : $"\n\nТехническая причина: {inner.Message}"), inner)
 {
@@ -126,7 +148,7 @@ public static class ZapretInstaller
 
     /// <summary>
     /// Исполняемые файлы, которые запускаются от SYSTEM. Их сверяем с архивом по хешу:
-    /// подмена любого из них — это права системы для того, кто подменил.
+    /// подмена любого из них - это права системы для того, кто подменил.
     /// </summary>
     internal static readonly string[] CriticalFiles = ["winws.exe", "WinDivert64.sys", "WinDivert.dll", "cygwin1.dll"];
 
@@ -139,7 +161,7 @@ public static class ZapretInstaller
             ? Path.Combine(installRoot, $"zapret-{version}")
             : throw new ArgumentException($"Некорректная версия zapret: «{version}»", nameof(version));
 
-    /// <summary>Удаляет папки и архивы других версий zapret (после перехода на новую). Занятые — пропускает.</summary>
+    /// <summary>Удаляет папки и архивы других версий zapret (после перехода на новую). Занятые - пропускает.</summary>
     public static void RemoveOtherVersions(string installRoot, string currentVersion)
     {
         if (!Directory.Exists(installRoot)) return;
@@ -179,19 +201,71 @@ public static class ZapretInstaller
         }
         finally
         {
-            // Уборка не должна прятать настоящую ошибку: если папку держит антивирус — просто оставляем её.
+            // Уборка не должна прятать настоящую ошибку: если папку держит антивирус - просто оставляем её.
             TryDelete(tmp);
         }
 
         // Антивирус может удалить файл уже после распаковки, без всякой ошибки.
         if (!IsComplete(paths)) throw new AntivirusBlockedException(installRoot, null);
+        CarryOverUserFiles(installRoot, paths);
         return paths;
+    }
+
+    /// <summary>Настройки пользователя, которые переезжают в новую версию zapret.</summary>
+    internal static readonly string[] UserFiles =
+    [
+        Path.Combine("lists", "list-general-user.txt"),
+        Path.Combine("lists", "list-exclude-user.txt"),
+        Path.Combine("lists", "ipset-exclude-user.txt"),
+        Path.Combine("utils", "game_filter.enabled"),
+    ];
+
+    /// <summary>
+    /// Когда в приложение вшита новая версия zapret, переносим свои списки сайтов и игровой фильтр
+    /// из самой свежей из прежних версий - иначе они пропали бы вместе со старой папкой.
+    /// Уже существующие файлы новой версии не трогаем.
+    /// </summary>
+    private static void CarryOverUserFiles(string installRoot, ZapretPaths target)
+    {
+        var previous = Directory.EnumerateDirectories(installRoot, "zapret-*")
+            .Where(d => !string.Equals(Path.GetFullPath(d), Path.GetFullPath(target.Root), StringComparison.OrdinalIgnoreCase))
+            .Select(d => (Dir: d, Version: Path.GetFileName(d)["zapret-".Length..]))
+            .Where(x => IsValidVersion(x.Version))
+            .OrderByDescending(x => x.Version.Split('.').Select(int.Parse).ToArray(), VersionComparer.Instance)
+            .Select(x => x.Dir)
+            .FirstOrDefault();
+        if (previous is null) return;
+
+        foreach (var relative in UserFiles)
+        {
+            var from = Path.Combine(previous, relative);
+            var to = Path.Combine(target.Root, relative);
+            if (!File.Exists(from) || File.Exists(to)) continue;
+            Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+            File.Copy(from, to);
+        }
+    }
+
+    private sealed class VersionComparer : IComparer<int[]>
+    {
+        public static readonly VersionComparer Instance = new();
+
+        public int Compare(int[]? a, int[]? b)
+        {
+            a ??= []; b ??= [];
+            for (var i = 0; i < Math.Max(a.Length, b.Length); i++)
+            {
+                var diff = (i < a.Length ? a[i] : 0).CompareTo(i < b.Length ? b[i] : 0);
+                if (diff != 0) return diff;
+            }
+            return 0;
+        }
     }
 
     /// <summary>
     /// Обновляет установленную папку файлами из архива, не удаляя её целиком: загруженный драйвер
     /// WinDivert64.sys удалить нельзя, а совпадающий файл и не нужно. Пользовательские списки
-    /// (*-user.txt) остаются. Лишние файлы в bin удаляются — рядом с winws.exe не должно быть чужих DLL.
+    /// (*-user.txt) остаются. Лишние файлы в bin удаляются - рядом с winws.exe не должно быть чужих DLL.
     /// </summary>
     internal static void MergeInto(string source, string target)
     {
@@ -236,7 +310,7 @@ public static class ZapretInstaller
             if (entry is null) return false;
 
             using var fromZip = entry.Open();
-            // Загруженный драйвер открыт системой — читаем с разрешением совместного доступа.
+            // Загруженный драйвер открыт системой - читаем с разрешением совместного доступа.
             using var installed = new FileStream(Path.Combine(paths.Bin, name), FileMode.Open, FileAccess.Read,
                 FileShare.ReadWrite | FileShare.Delete);
             if (!SHA256.HashData(fromZip).AsSpan().SequenceEqual(SHA256.HashData(installed))) return false;
@@ -263,11 +337,11 @@ public static class ZapretInstaller
     /// <summary>
     /// Готовит папку, из которой служба zapret запускается от SYSTEM: писать туда могут только
     /// SYSTEM и администраторы. Если папку заранее создал кто-то другой (или это ссылка
-    /// на другую папку) — она удаляется и создаётся заново: её владелец мог подложить свои файлы
+    /// на другую папку) - она удаляется и создаётся заново: её владелец мог подложить свои файлы
     /// и в любой момент вернуть себе права.
     /// </summary>
     /// <param name="releaseFiles">
-    /// Остановить всё, что держит файлы папки открытыми (службу zapret и winws.exe), — иначе
+    /// Остановить всё, что держит файлы папки открытыми (службу zapret и winws.exe), - иначе
     /// Windows не даст удалить, например, используемый cygwin1.dll.
     /// </param>
     public static void PrepareSecureRoot(string installRoot, Action? releaseFiles = null)
@@ -278,8 +352,8 @@ public static class ZapretInstaller
         {
             if (!RemoveUntrusted(dir, releaseFiles))
             {
-                // Файл занят (например, загруженный драйвер WinDivert64.sys) — тогда забираем папку
-                // на месте: владелец — администраторы, лишние права у всего содержимого сбрасываются.
+                // Файл занят (например, загруженный драйвер WinDivert64.sys) - тогда забираем папку
+                // на месте: владелец - администраторы, лишние права у всего содержимого сбрасываются.
                 // Подменённые исполняемые файлы потом поймает проверка по хешу в EnsureInstalled.
                 TakeOverInPlace(dir, security);
                 return;
@@ -291,7 +365,7 @@ public static class ZapretInstaller
         else dir.Create(security);
     }
 
-    /// <summary>Удаляет недоверенную папку. false — если что-то в ней так и осталось занятым.</summary>
+    /// <summary>Удаляет недоверенную папку. false - если что-то в ней так и осталось занятым.</summary>
     internal static bool RemoveUntrusted(DirectoryInfo dir, Action? releaseFiles, int attempts = 12)
     {
         if (dir.Attributes.HasFlag(FileAttributes.ReparsePoint))
@@ -301,7 +375,7 @@ public static class ZapretInstaller
         }
 
         releaseFiles?.Invoke();
-        // Процесс завершается и отпускает файлы не мгновенно — пробуем несколько раз.
+        // Процесс завершается и отпускает файлы не мгновенно - пробуем несколько раз.
         for (var attempt = 1; ; attempt++)
         {
             try
@@ -329,7 +403,7 @@ public static class ZapretInstaller
         {
             if (entry.Attributes.HasFlag(FileAttributes.ReparsePoint))
             {
-                entry.Delete(); // ссылки внутри могли вести куда угодно — убираем сами ссылки
+                entry.Delete(); // ссылки внутри могли вести куда угодно - убираем сами ссылки
                 continue;
             }
             // Только наследуемые права от корня: явные разрешения, выданные кем-то ещё, исчезают.

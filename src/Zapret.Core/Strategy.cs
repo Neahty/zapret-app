@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace Zapret.Core;
 
 /// <summary>
-/// Одна стратегия обхода — это один general*.bat. Внутри него одна команда winws.exe
+/// Одна стратегия обхода - это один general*.bat. Внутри него одна команда winws.exe
 /// с аргументами, где встречаются %BIN%, %LISTS%, %GameFilterTCP%, %GameFilterUDP%.
 /// </summary>
 public sealed record Strategy(string Name, IReadOnlyList<string> ArgTemplates)
@@ -96,7 +96,7 @@ public static class StrategyCatalog
             .OrderBy(s => NaturalKey(s.Name), StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-    /// <summary>В новой версии zapret может появиться служебный .bat без winws — его просто пропускаем.</summary>
+    /// <summary>В новой версии zapret может появиться служебный .bat без winws - его просто пропускаем.</summary>
     private static Strategy? TryParse(string file)
     {
         try { return StrategyParser.Parse(Path.GetFileNameWithoutExtension(file), File.ReadAllText(file)); }

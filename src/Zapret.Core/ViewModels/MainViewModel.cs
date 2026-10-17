@@ -11,8 +11,9 @@ public enum CheckKind { None, Checking, Good, Partial, Bad }
 public sealed partial class StrategyItem(string name) : ObservableObject
 {
     public string Name { get; } = name;
-    public bool IsRecommended => Name == Strategy.DefaultName;
 
+    /// <summary>Победитель автоподбора: он же стратегия по умолчанию.</summary>
+    [ObservableProperty] private bool _isBest;
     [ObservableProperty] private bool _isSelected;
     [ObservableProperty] private string? _result;
     [ObservableProperty] private CheckKind _kind;
@@ -29,8 +30,12 @@ public sealed partial class StrategyItem(string name) : ObservableObject
 public sealed partial class HealthItem(string name) : ObservableObject
 {
     public string Name { get; } = name;
+
+    /// <summary>Подпись над названием в карточке: что именно проверяется.</summary>
+    public string Caption => Name switch { "Discord" => "Голос и чаты", "YouTube" => "Видео", _ => "Сервис" };
+
     [ObservableProperty] private CheckKind _kind;
-    [ObservableProperty] private string _detail = "—";
+    [ObservableProperty] private string _detail = "-";
 }
 
 public sealed partial class MainViewModel : ObservableObject
@@ -44,14 +49,9 @@ public sealed partial class MainViewModel : ObservableObject
     private int _ticks;
     private int _healthVersion;
 
-    private readonly ZapretUpdater? _updater;
-
     public MainViewModel(BypassController controller, HealthChecker health, Func<StrategyTester> testerFactory,
-        IAppAutostart autostart, IpsetManager ipset, TimeProvider time,
-        ZapretUpdater? updater = null, string zapretVersion = ZapretInstaller.Version)
+        IAppAutostart autostart, IpsetManager ipset, TimeProvider time)
     {
-        _updater = updater;
-        ZapretVersion = zapretVersion;
         _controller = controller;
         _health = health;
         _testerFactory = testerFactory;
@@ -80,14 +80,8 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isAutoSelecting;
     [ObservableProperty] private string? _autoSelectProgress;
 
-    /// <summary>Установленная версия zapret — показывается в настройках.</summary>
-    public string ZapretVersion { get; }
-    [ObservableProperty] private bool _isUpdating;
-    [ObservableProperty] private string? _updateStatus;
-    [ObservableProperty] private bool _updateFailed;
-
-    /// <summary>Новая версия zapret установлена — приложению нужно перезапуститься на неё.</summary>
-    public event Action? RestartRequested;
+    /// <summary>Вшитая в приложение версия zapret - показывается в настройках.</summary>
+    public string ZapretVersion => ZapretInstaller.Version;
 
     public string StatusTitle => IsBusy ? "Подождите…" : IsOn ? "Обход включён" : "Обход выключен";
 
@@ -97,6 +91,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var settings = _controller.Settings;
         MarkSelected(_controller.Resolve(settings.Strategy).Name);
+        MarkBest(settings.BestStrategy);
         GameFilterMode = GameFilter.Load(_controller.Paths.GameFilterFile).Mode;
         IpsetMode = _ipset.GetMode();
         LaunchWithWindows = settings.LaunchWithWindows;
@@ -158,7 +153,8 @@ public sealed partial class MainViewModel : ObservableObject
                     "Ни одна стратегия не открыла Discord и YouTube. Проверьте интернет и отключите VPN.");
         });
         IsAutoSelecting = false;
-        AutoSelectProgress = best is null ? null : $"Лучшая: {best.Name}";
+        if (best is not null) MarkBest(best.Name);
+        AutoSelectProgress = best is null ? null : $"Лучшая: {best.Name} - теперь она по умолчанию";
         if (IsOn) await CheckHealthAsync();
     }
 
@@ -168,7 +164,7 @@ public sealed partial class MainViewModel : ObservableObject
         var version = ++_healthVersion;
         foreach (var h in Health) { h.Kind = CheckKind.Checking; h.Detail = "проверяю…"; }
         var results = await _health.CheckAsync();
-        // Пока шла проверка, обход могли выключить или запустить новую проверку — старый результат не показываем.
+        // Пока шла проверка, обход могли выключить или запустить новую проверку - старый результат не показываем.
         if (version != _healthVersion) return;
         foreach (var r in results)
         {
@@ -177,52 +173,6 @@ public sealed partial class MainViewModel : ObservableObject
             item.Kind = r.Ok ? CheckKind.Good : CheckKind.Bad;
             item.Detail = r.Ok ? Format.Ms(r.Latency) : "недоступен";
         }
-    }
-
-    /// <summary>Есть ли новая версия zapret; если есть — скачать, установить и перезапуститься на неё.</summary>
-    [RelayCommand]
-    private async Task CheckUpdatesAsync()
-    {
-        if (_updater is null || IsBusy || IsUpdating) return;
-        IsUpdating = true;
-        IsBusy = true;
-        UpdateFailed = false;
-        UpdateStatus = "Проверяю…";
-        var switched = false;
-        try
-        {
-            var release = await _updater.CheckAsync(ZapretVersion);
-            if (release is null)
-            {
-                UpdateStatus = $"Установлена последняя версия {ZapretVersion}";
-                return;
-            }
-
-            UpdateStatus = $"Нашлась версия {release.Version}, скачиваю…";
-            await _updater.DownloadAndInstallAsync(release, _controller.Paths);
-            UpdateStatus = $"Переключаюсь на {release.Version}…";
-            await _controller.SwitchZapretVersionAsync(release.Version);
-            switched = true;
-            UpdateStatus = $"Версия {release.Version} установлена, перезапускаю…";
-        }
-        catch (Exception e)
-        {
-            UpdateFailed = true;
-            UpdateStatus = "Не удалось обновить: " + e.Message;
-            // Если сбой случился уже при переключении, обход мог остаться остановленным — поднимаем прежнюю версию.
-            if (_controller.Settings.Enabled && !_controller.GetStatus().IsOn)
-            {
-                try { await _controller.ReapplyAsync(); }
-                catch (Exception restore) { ErrorMessage = restore.Message; }
-            }
-        }
-        finally
-        {
-            IsBusy = false;
-            IsUpdating = false;
-            if (!switched) RefreshStatus();
-        }
-        if (switched) RestartRequested?.Invoke();
     }
 
     [RelayCommand]
@@ -239,7 +189,7 @@ public sealed partial class MainViewModel : ObservableObject
         await RunBusyAsync(() => _controller.ReapplyAsync());
         if (ErrorMessage is null) return;
 
-        // Не применилось — возвращаем как было, чтобы экран не врал о настройке.
+        // Не применилось - возвращаем как было, чтобы экран не врал о настройке.
         previous.Save(file);
         GameFilterMode = previous.Mode;
     }
@@ -264,7 +214,7 @@ public sealed partial class MainViewModel : ObservableObject
         await SyncAutostartAsync(value);
     }
 
-    /// <summary>Вызывается окном раз в секунду: обновляет таймер и раз в 5 секунд — статус службы.</summary>
+    /// <summary>Вызывается окном раз в секунду: обновляет таймер и раз в 5 секунд - статус службы.</summary>
     public void Tick()
     {
         if (!IsBusy && ++_ticks % 5 == 0) RefreshStatus();
@@ -314,10 +264,15 @@ public sealed partial class MainViewModel : ObservableObject
         SelectedStrategy = Strategies.FirstOrDefault(s => s.IsSelected);
     }
 
+    private void MarkBest(string? name)
+    {
+        foreach (var s in Strategies) s.IsBest = s.Name == name;
+    }
+
     private void ResetHealth()
     {
         _healthVersion++;
-        foreach (var h in Health) { h.Kind = CheckKind.None; h.Detail = "—"; }
+        foreach (var h in Health) { h.Kind = CheckKind.None; h.Detail = "-"; }
     }
 
     private sealed class InlineProgress<T>(Action<T> handler) : IProgress<T>
@@ -328,7 +283,7 @@ public sealed partial class MainViewModel : ObservableObject
 
 public static class Format
 {
-    public static string Ms(TimeSpan? t) => t is null ? "—" : $"{(int)t.Value.TotalMilliseconds} мс";
+    public static string Ms(TimeSpan? t) => t is null ? "-" : $"{(int)t.Value.TotalMilliseconds} мс";
 
     public static string Duration(TimeSpan t)
     {

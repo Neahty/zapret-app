@@ -31,7 +31,7 @@ public sealed class NotConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => value is not true;
 }
 
-/// <summary>Пустая строка, null или false — скрыть элемент. С параметром "invert" — наоборот.</summary>
+/// <summary>Пустая строка, null или false - скрыть элемент. С параметром "invert" - наоборот.</summary>
 public sealed class EmptyToCollapsedConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -45,7 +45,7 @@ public sealed class EmptyToCollapsedConverter : IValueConverter
         Binding.DoNothing;
 }
 
-/// <summary>Цвет результата проверки: зелёный — работает, жёлтый — частично, красный — нет.</summary>
+/// <summary>Цвет результата проверки: зелёный - работает, жёлтый - частично, красный - нет.</summary>
 public sealed class CheckKindToBrushConverter : IValueConverter
 {
     public Brush Good { get; set; } = Brushes.LimeGreen;
@@ -59,6 +59,30 @@ public sealed class CheckKindToBrushConverter : IValueConverter
         CheckKind.Partial => Partial,
         CheckKind.Bad => Bad,
         _ => Neutral,
+    };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Binding.DoNothing;
+}
+
+/// <summary>Короткие русские подписи для режимов и результатов проверки.</summary>
+public sealed class RuLabelConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
+    {
+        Zapret.Core.GameFilterMode.Disabled => "выкл",
+        Zapret.Core.GameFilterMode.All => "TCP+UDP",
+        Zapret.Core.GameFilterMode.Tcp => "TCP",
+        Zapret.Core.GameFilterMode.Udp => "UDP",
+        Zapret.Core.IpsetMode.None => "нет",
+        Zapret.Core.IpsetMode.Loaded => "список",
+        Zapret.Core.IpsetMode.Any => "все",
+        CheckKind.Good => "открывается",
+        CheckKind.Partial => "частично",
+        CheckKind.Bad => "не открывается",
+        CheckKind.Checking => "проверяю…",
+        CheckKind.None => "не проверялось",
+        _ => value?.ToString() ?? "",
     };
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>

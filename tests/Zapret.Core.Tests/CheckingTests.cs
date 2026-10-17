@@ -123,7 +123,7 @@ public sealed class AppAutostartTests
         await new AppAutostart(runner, Exe, "user", dir.Path).SetAsync(true);
 
         runner.Calls.Single().Args.Should().Contain(new[] { "/Create", "/TN", AppAutostart.TaskName, "/F" });
-        Path.GetDirectoryName(xmlPath).Should().Be(dir.Path, "XML нельзя класть в общий %TEMP% — его успеют подменить");
+        Path.GetDirectoryName(xmlPath).Should().Be(dir.Path, "XML нельзя класть в общий %TEMP% - его успеют подменить");
         File.Exists(xmlPath).Should().BeFalse();
     }
 
@@ -178,6 +178,22 @@ public sealed class AppDeploymentTests : IDisposable
 
         exe.Should().Be(_dst.File("Zapret.exe"));
         File.ReadAllText(Path.Combine(_dst.Path, "runtimes", "lib.dll")).Should().Be("dll");
+    }
+
+    [Fact]
+    public void EnsureDeployed_CopiesOnlyAppFiles_WhenRunFromDownloadsFolder()
+    {
+        File.WriteAllText(_src.File("Zapret.exe"), "exe");
+        File.WriteAllText(_src.File("wpfgfx_cor3.dll"), "dll");
+        File.WriteAllText(_src.File("photo.jpg"), "чужой файл");
+        File.WriteAllText(_src.File("setup.exe"), "чужая программа");
+        Directory.CreateDirectory(_src.File("Сериалы"));
+        File.WriteAllText(Path.Combine(_src.Path, "Сериалы", "1.mkv"), "видео");
+
+        AppDeployment.EnsureDeployed(_src.Path, _dst.Path, "Zapret.exe");
+
+        Directory.GetFileSystemEntries(_dst.Path).Select(Path.GetFileName)
+            .Should().BeEquivalentTo("Zapret.exe", "wpfgfx_cor3.dll");
     }
 
     [Fact]

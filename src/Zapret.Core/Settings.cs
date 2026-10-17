@@ -4,14 +4,14 @@ namespace Zapret.Core;
 
 public sealed record AppSettings
 {
-    /// <summary>Обход включён. По умолчанию — да: при первом запуске zapret сразу ставится службой.</summary>
+    /// <summary>Обход включён. По умолчанию - да: при первом запуске zapret сразу ставится службой.</summary>
     public bool Enabled { get; init; } = true;
     public string? Strategy { get; init; }
     public DateTimeOffset? EnabledAt { get; init; }
     /// <summary>Запускать приложение (в трее) при входе в Windows.</summary>
     public bool LaunchWithWindows { get; init; } = true;
-    /// <summary>Скачанная обновлением версия zapret; null — используется встроенная в приложение.</summary>
-    public string? ZapretVersion { get; init; }
+    /// <summary>Победитель последнего автоподбора - помечается в списке стратегий.</summary>
+    public string? BestStrategy { get; init; }
 }
 
 public interface ISettingsStore
@@ -34,7 +34,7 @@ public sealed class JsonSettingsStore(string path) : ISettingsStore
         }
         catch (JsonException)
         {
-            // Битый файл не должен ломать запуск — начинаем с настроек по умолчанию.
+            // Битый файл не должен ломать запуск - начинаем с настроек по умолчанию.
             return new AppSettings();
         }
     }

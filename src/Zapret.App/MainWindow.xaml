@@ -1,394 +1,650 @@
-﻿<Window x:Class="Zapret.App.MainWindow"
+<Window x:Class="Zapret.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Zapret.App"
         xmlns:vm="clr-namespace:Zapret.Core.ViewModels;assembly=Zapret.Core"
         xmlns:core="clr-namespace:Zapret.Core;assembly=Zapret.Core"
-        Title="Запрет" Width="400" Height="740" MinHeight="600"
-        WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize"
+        Title="Запрет" Width="1180" Height="810" MinWidth="900" MinHeight="620"
+        WindowStartupLocation="CenterScreen" ResizeMode="CanResize"
         Background="{StaticResource BgBrush}" WindowStyle="None"
         Icon="pack://application:,,,/Zapret;component/Assets/app.ico" FontFamily="{StaticResource UiFont}">
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="48" ResizeBorderThickness="0" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
+        <WindowChrome CaptionHeight="56" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="48" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+        <!-- Фон без фотографий: мягкие пятна голубого и лавандового света -->
+        <Viewbox Stretch="UniformToFill">
+            <Canvas Width="1280" Height="880" ClipToBounds="True" IsHitTestVisible="False">
+                <Ellipse Canvas.Left="250" Canvas.Top="20" Width="760" Height="620">
+                    <Ellipse.Fill>
+                        <RadialGradientBrush>
+                            <GradientStop Color="#402F6BFF" Offset="0" />
+                            <GradientStop Color="#142F6BFF" Offset="0.5" />
+                            <GradientStop Color="#002F6BFF" Offset="1" />
+                        </RadialGradientBrush>
+                    </Ellipse.Fill>
+                </Ellipse>
+                <Ellipse Canvas.Left="820" Canvas.Top="-180" Width="620" Height="520">
+                    <Ellipse.Fill>
+                        <RadialGradientBrush>
+                            <GradientStop Color="#33A78BFA" Offset="0" />
+                            <GradientStop Color="#00A78BFA" Offset="1" />
+                        </RadialGradientBrush>
+                    </Ellipse.Fill>
+                </Ellipse>
+                <Ellipse Canvas.Left="-160" Canvas.Top="520" Width="620" Height="520">
+                    <Ellipse.Fill>
+                        <RadialGradientBrush>
+                            <GradientStop Color="#2638BDF8" Offset="0" />
+                            <GradientStop Color="#0038BDF8" Offset="1" />
+                        </RadialGradientBrush>
+                    </Ellipse.Fill>
+                </Ellipse>
+            </Canvas>
+        </Viewbox>
 
-        <!-- ================= Заголовок окна ================= -->
-        <Grid Margin="20,0,8,0">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Border Width="22" Height="22" CornerRadius="7" Background="{StaticResource OnGradient}">
-                    <Path Data="{StaticResource PowerIcon}" Width="11" Height="11" Stretch="Uniform" Stroke="White"
-                          StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                </Border>
-                <TextBlock Text="Запрет" Margin="10,0,0,0" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                <Button Style="{StaticResource ChromeButton}" Click="Minimize_Click" ToolTip="Свернуть">
-                    <Path Data="{StaticResource MinIcon}" Width="12" Height="12" Style="{StaticResource StrokeIcon}" />
-                </Button>
-                <Button Style="{StaticResource ChromeButton}" Click="Close_Click" ToolTip="Свернуть в трей">
-                    <Path Data="{StaticResource CloseIcon}" Width="11" Height="11" Style="{StaticResource StrokeIcon}" />
-                </Button>
-            </StackPanel>
-        </Grid>
+        <!-- Интерфейс на сетке 1280×880, масштабируется под размер окна целиком -->
+        <Viewbox Stretch="Uniform">
+            <Grid Width="1280" Height="880">
 
-        <!-- ================= Главная ================= -->
-        <Grid Grid.Row="1" Margin="20,0"
-              Visibility="{Binding CurrentPage, Converter={StaticResource EnumToVisibility}, ConverterParameter={x:Static vm:AppPage.Home}}">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
-            <!-- Плашка статуса -->
-            <Border HorizontalAlignment="Center" Margin="0,8,0,0" Padding="12,6" CornerRadius="14" Background="{StaticResource SurfaceBrush}">
-                <StackPanel Orientation="Horizontal">
-                    <Ellipse Width="8" Height="8" VerticalAlignment="Center">
-                        <Ellipse.Style>
-                            <Style TargetType="Ellipse">
-                                <Setter Property="Fill" Value="{StaticResource Text2Brush}" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsOn}" Value="True">
-                                        <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Ellipse.Style>
-                    </Ellipse>
-                    <TextBlock Margin="8,0,0,0" FontSize="12">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
-                                <Setter Property="Text" Value="Discord и YouTube заблокированы" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsOn}" Value="True">
-                                        <Setter Property="Text" Value="Блокировки обходятся" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </StackPanel>
-            </Border>
-
-            <!-- Кнопка питания и статус -->
-            <StackPanel Grid.Row="1" VerticalAlignment="Center">
-                <Button Style="{StaticResource PowerButton}" Command="{Binding ToggleCommand}" HorizontalAlignment="Center"
-                        ToolTip="Включить или выключить обход" />
-                <TextBlock Text="{Binding StatusTitle}" Margin="0,30,0,0" HorizontalAlignment="Center" FontSize="24" FontWeight="Bold" />
-                <TextBlock Text="{Binding UptimeText}" Margin="0,6,0,0" HorizontalAlignment="Center" FontSize="16"
-                           FontFamily="Cascadia Mono, Consolas" Foreground="{StaticResource Text2Brush}"
-                           Visibility="{Binding UptimeText, Converter={StaticResource EmptyToCollapsed}}" />
-                <TextBlock Margin="0,6,0,0" HorizontalAlignment="Center" Style="{StaticResource Caption}" TextAlignment="Center"
-                           Text="Нажмите, чтобы включить. Дальше он будет включаться сам."
-                           Visibility="{Binding IsOn, Converter={StaticResource EmptyToCollapsed}, ConverterParameter=invert}" />
-            </StackPanel>
-
-            <StackPanel Grid.Row="2" Margin="0,0,0,12">
-                <!-- Ошибка -->
-                <Border Margin="0,0,0,10" Padding="14,10" CornerRadius="14" Background="{StaticResource BadSoftBrush}"
-                        Visibility="{Binding ErrorMessage, Converter={StaticResource EmptyToCollapsed}}">
-                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource BadBrush}" FontSize="13" TextWrapping="Wrap" />
-                </Border>
-
-                <!-- Текущая стратегия -->
-                <Button Style="{StaticResource FlatButton}" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
-                        BorderThickness="1" Padding="14,12" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:AppPage.Strategies}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Border Width="40" Height="40" CornerRadius="12" Background="{StaticResource AccentSoftBrush}">
-                            <Path Data="{StaticResource ShieldIcon}" Width="18" Height="18" Stretch="Uniform" Stroke="{StaticResource AccentBrush}"
-                                  StrokeThickness="2" StrokeLineJoin="Round" />
-                        </Border>
-                        <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
-                            <TextBlock Text="Стратегия обхода" Style="{StaticResource Caption}" FontSize="12" />
-                            <TextBlock Text="{Binding SelectedStrategy.Name}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <!-- ================= Боковая панель ================= -->
+                <ContentControl x:Name="Sidebar" Style="{StaticResource Card}" Background="#D9FFFFFF" Width="220" HorizontalAlignment="Left"
+                                Margin="20" Padding="16,26,16,16" local:Reveal.Delay="0.05" local:Reveal.Kind="SlideLeft">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10,0,0,0">
+                            <Image Source="pack://application:,,,/Zapret;component/Assets/logo.png" Width="38" Height="38"
+                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                            <TextBlock Text="Запрет" FontSize="20" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
-                        <Path Grid.Column="2" Data="{StaticResource ChevronIcon}" Width="9" Height="14" Style="{StaticResource StrokeIcon}"
-                              Stroke="{StaticResource Text2Brush}" />
-                    </Grid>
-                </Button>
 
-                <!-- Проверка Discord / YouTube -->
-                <Grid Margin="0,10,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <ItemsControl ItemsSource="{Binding Health}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <UniformGrid Rows="1" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:HealthItem}">
-                                <Border Style="{StaticResource Card}" Padding="12,10" Margin="0,0,8,0">
+                        <StackPanel DockPanel.Dock="Top" Margin="0,40,0,0">
+                            <Button Style="{StaticResource NavButton}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:AppPage.Home}"
+                                    Tag="{Binding CurrentPage, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static vm:AppPage.Home}}"
+                                    local:Reveal.Delay="0.25">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource HomeIcon}" Width="19" Height="19" Style="{StaticResource StrokeIcon}" />
+                                    <TextBlock Text="Главная" Margin="14,0,0,0" FontSize="15"
+                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource NavButton}" Margin="0,8,0,0" Command="{Binding NavigateCommand}"
+                                    CommandParameter="{x:Static vm:AppPage.Strategies}"
+                                    Tag="{Binding CurrentPage, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static vm:AppPage.Strategies}}"
+                                    local:Reveal.Delay="0.3">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource ListIcon}" Width="19" Height="19" Style="{StaticResource StrokeIcon}" />
+                                    <TextBlock Text="Стратегии" Margin="14,0,0,0" FontSize="15"
+                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource NavButton}" Margin="0,8,0,0" Command="{Binding NavigateCommand}"
+                                    CommandParameter="{x:Static vm:AppPage.Settings}"
+                                    Tag="{Binding CurrentPage, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static vm:AppPage.Settings}}"
+                                    local:Reveal.Delay="0.35">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource GearIcon}" Width="19" Height="19" Style="{StaticResource StrokeIcon}" />
+                                    <TextBlock Text="Настройки" Margin="14,0,0,0" FontSize="15"
+                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <Border VerticalAlignment="Bottom" Background="#F0F4FC" CornerRadius="18" Padding="18" local:Reveal.Delay="0.5">
+                            <StackPanel>
+                                <Path Data="{StaticResource BoltIcon}" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Left"
+                                      Stroke="{StaticResource AccentBrush}" StrokeThickness="1.8" StrokeLineJoin="Round" />
+                                <TextBlock Text="Это не VPN" FontSize="15" FontWeight="SemiBold" Margin="0,12,0,0" />
+                                <TextBlock Style="{StaticResource Caption}" FontSize="12.5" Margin="0,6,0,0"
+                                           Text="Трафик идёт напрямую: скорость и пинг не меняются, IP остаётся вашим." />
+                            </StackPanel>
+                        </Border>
+                    </DockPanel>
+                </ContentControl>
+
+                <Grid Margin="260,20,20,20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Кнопки окна -->
+                    <StackPanel x:Name="Header" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                        <Button Style="{StaticResource ChromeButton}" ToolTip="Свернуть" Click="Minimize_Click">
+                            <Path Data="{StaticResource MinIcon}" Width="14" Height="14" Style="{StaticResource StrokeIcon}" />
+                        </Button>
+                        <Button Style="{StaticResource ChromeButton}" ToolTip="Свернуть в трей (обход продолжит работать)" Margin="6,0,0,0"
+                                Click="Close_Click">
+                            <Path Data="{StaticResource CloseIcon}" Width="12" Height="12" Style="{StaticResource StrokeIcon}" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- ================= Главная ================= -->
+                    <Grid x:Name="HomePage" Grid.Row="1"
+                          Visibility="{Binding CurrentPage, Converter={StaticResource EnumToVisibility}, ConverterParameter={x:Static vm:AppPage.Home}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="340" />
+                        </Grid.ColumnDefinitions>
+
+                        <Grid Margin="0,0,20,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Заголовок -->
+                            <StackPanel Margin="34,0,0,0" VerticalAlignment="Top">
+                                <TextBlock Text="Обход блокировок" FontSize="13.5" Foreground="{StaticResource Text2Brush}" local:Reveal.Delay="0.2" />
+                                <Border ClipToBounds="True" Margin="0,10,0,0">
+                                    <TextBlock Text="Discord и YouTube" Style="{StaticResource H1}" local:Reveal.Delay="0.3" local:Reveal.Kind="LineUp" />
+                                </Border>
+                                <Border ClipToBounds="True">
+                                    <TextBlock local:Reveal.Delay="0.4" local:Reveal.Kind="LineUp">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource H1}">
+                                                <Setter Property="Text" Value="заблокированы" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsOn}" Value="True">
+                                                        <Setter Property="Text" Value="без границ" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Style="{StaticResource Caption}" FontSize="14.5" LineHeight="23" Margin="0,12,0,0" Width="470"
+                                           HorizontalAlignment="Left" local:Reveal.Delay="0.55"
+                                           Text="Без VPN и лишних настроек. Включается сам вместе с Windows." />
+                            </StackPanel>
+
+                            <!-- Кнопка питания и состояние -->
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,150,0,0" local:Reveal.Delay="0.6"
+                                        local:Reveal.Kind="Pop">
+                                <Button Style="{StaticResource PowerButton}" Command="{Binding ToggleCommand}" HorizontalAlignment="Center"
+                                        ToolTip="Включить или выключить обход" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
+                                    <Ellipse Width="8" Height="8" VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource Text3Brush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsOn}" Value="True">
+                                                        <Setter Property="Fill" Value="{StaticResource GoodBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock Text="{Binding StatusTitle}" Margin="9,0,0,0" FontSize="19" FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsOn}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                                <TextBlock HorizontalAlignment="Center" Margin="0,6,0,0" FontSize="13.5" Foreground="{StaticResource Text2Brush}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Setter Property="Text" Value="Нажмите, чтобы включить" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsOn}" Value="True">
+                                                    <Setter Property="Text" Value="{Binding UptimeText, StringFormat=Работает {0}}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Border Margin="0,14,0,0" Padding="14,10" CornerRadius="14" Background="{StaticResource BadSoftBrush}" MaxWidth="440"
+                                        Visibility="{Binding ErrorMessage, Converter={StaticResource EmptyToCollapsed}}">
+                                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#B42318" FontSize="13" TextWrapping="Wrap" TextAlignment="Center" />
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Проверка Discord и YouTube -->
+                            <ContentControl Grid.Row="1" Style="{StaticResource Card}" Margin="0,18,0,0" Padding="26,20" local:Reveal.Delay="0.75">
+                                <StackPanel>
+                                    <Grid>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Path Data="{StaticResource PulseIcon}" Width="19" Height="19" Stretch="Uniform" Stroke="{StaticResource TextBrush}"
+                                                  StrokeThickness="1.9" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                            <TextBlock Text="Проверка доступа" Style="{StaticResource CardTitle}" Margin="12,0,0,0" />
+                                        </StackPanel>
+                                        <Button Style="{StaticResource SoftButton}" HorizontalAlignment="Right" Command="{Binding CheckHealthCommand}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource RefreshIcon}" Width="13" Height="13" Style="{StaticResource StrokeIcon}" />
+                                                <TextBlock Text="Проверить" Margin="7,0,0,0" FontWeight="SemiBold"
+                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                    <Grid Margin="0,20,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <ItemsControl ItemsSource="{Binding Health}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Rows="1" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:HealthItem}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Border Width="38" Height="38" CornerRadius="12" Background="#F0F4FC" VerticalAlignment="Top">
+                                                            <Ellipse Width="9" Height="9" Fill="{Binding Kind, Converter={StaticResource CheckKindToBrush}}" />
+                                                        </Border>
+                                                        <StackPanel Margin="12,0,0,0">
+                                                            <TextBlock FontSize="12.5" Foreground="{StaticResource Text2Brush}">
+                                                                <Run Text="{Binding Name, Mode=OneWay}" />
+                                                            </TextBlock>
+                                                            <TextBlock Text="{Binding Detail}" FontSize="22" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <Border Width="38" Height="38" CornerRadius="12" Background="#F0F4FC" VerticalAlignment="Top">
+                                                <Path Data="{StaticResource ClockIcon}" Width="17" Height="17" Stretch="Uniform"
+                                                      Stroke="{StaticResource AccentBrush}" StrokeThickness="1.9" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                            </Border>
+                                            <StackPanel Margin="12,0,0,0">
+                                                <TextBlock Text="Время работы" FontSize="12.5" Foreground="{StaticResource Text2Brush}" />
+                                                <TextBlock FontSize="22" FontWeight="SemiBold" Margin="0,2,0,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                            <Setter Property="Text" Value="{Binding UptimeText}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsOn}" Value="False">
+                                                                    <Setter Property="Text" Value="-" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </ContentControl>
+                        </Grid>
+
+                        <!-- Правая колонка -->
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Выбор стратегии (как список серверов) -->
+                            <ContentControl Style="{StaticResource Card}" Padding="16,18,16,12" local:Reveal.Delay="0.35" local:Reveal.Kind="SlideRight">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Top" Style="{StaticResource FlatButton}" Padding="8,4" Command="{Binding NavigateCommand}"
+                                            CommandParameter="{x:Static vm:AppPage.Strategies}" ToolTip="Все стратегии и автоподбор">
+                                        <Grid>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource NetIcon}" Width="19" Height="19" Stretch="Uniform" Stroke="{StaticResource TextBrush}"
+                                                      StrokeThickness="1.7" />
+                                                <TextBlock Text="Выбор стратегии" Style="{StaticResource CardTitle}" Margin="12,0,0,0" />
+                                            </StackPanel>
+                                            <Path Data="{StaticResource ChevronIcon}" Width="9" Height="14" Stretch="Uniform" HorizontalAlignment="Right"
+                                                  Stroke="{StaticResource Text2Brush}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                        </Grid>
+                                    </Button>
+                                    <ScrollViewer Margin="0,12,-8,0" Padding="0,0,8,0" VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl ItemsSource="{Binding Strategies}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:StrategyItem}">
+                                                    <Button x:Name="Row" Style="{StaticResource FlatButton}" Padding="10,8" Margin="0,0,0,2"
+                                                            Command="{Binding DataContext.SelectStrategyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}">
+                                                        <Grid>
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <Border x:Name="Tile" Width="32" Height="32" CornerRadius="10" Background="#F0F4FC">
+                                                                    <Path x:Name="TileIcon" Data="{StaticResource ShieldIcon}" Width="14" Height="14" Stretch="Uniform"
+                                                                          Stroke="{StaticResource Text3Brush}" StrokeThickness="1.9" StrokeLineJoin="Round" />
+                                                                </Border>
+                                                                <TextBlock Text="{Binding Name, Converter={StaticResource StrategyTitle}}" Margin="12,0,0,0"
+                                                                           FontSize="14" FontWeight="Medium" VerticalAlignment="Center" />
+                                                                <Border Margin="8,0,0,0" Padding="6,1" CornerRadius="6" Background="{StaticResource AccentSoftBrush}"
+                                                                        VerticalAlignment="Center" Visibility="{Binding IsBest, Converter={StaticResource BoolToVisibility}}">
+                                                                    <TextBlock Text="лучшая" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" />
+                                                                </Border>
+                                                            </StackPanel>
+                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Result}" FontSize="12" Margin="0,0,12,0" VerticalAlignment="Center"
+                                                                           Foreground="{Binding Kind, Converter={StaticResource CheckKindToBrush}}" />
+                                                                <Grid Width="18" Height="18">
+                                                                    <Ellipse x:Name="Radio" Stroke="#C9D2E0" StrokeThickness="1.6" />
+                                                                    <Ellipse x:Name="RadioDot" Margin="4.5" Fill="{StaticResource AccentBrush}" Visibility="Collapsed" />
+                                                                </Grid>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Button>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter TargetName="Row" Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                                                            <Setter TargetName="Tile" Property="Background" Value="White" />
+                                                            <Setter TargetName="TileIcon" Property="Stroke" Value="{StaticResource AccentBrush}" />
+                                                            <Setter TargetName="Radio" Property="Stroke" Value="{StaticResource AccentBrush}" />
+                                                            <Setter TargetName="RadioDot" Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </DockPanel>
+                            </ContentControl>
+
+                            <!-- Текущая стратегия -->
+                            <Button Grid.Row="1" Style="{StaticResource FlatButton}" Margin="0,18,0,0" Command="{Binding NavigateCommand}"
+                                    CommandParameter="{x:Static vm:AppPage.Strategies}" local:Reveal.Delay="0.47" local:Reveal.Kind="SlideRight">
+                                <ContentControl Style="{StaticResource Card}" Padding="24,20">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal">
-                                            <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{Binding Kind, Converter={StaticResource CheckKindToBrush}}" />
-                                            <TextBlock Text="{Binding Name}" Margin="8,0,0,0" FontWeight="SemiBold" FontSize="14" />
+                                            <Path Data="{StaticResource PinIcon}" Width="17" Height="17" Stretch="Uniform" Stroke="{StaticResource TextBrush}"
+                                                  StrokeThickness="1.8" StrokeLineJoin="Round" />
+                                            <TextBlock Text="Текущая стратегия" Style="{StaticResource CardTitle}" Margin="10,0,0,0" />
                                         </StackPanel>
-                                        <TextBlock Text="{Binding Detail}" Margin="16,2,0,0" FontSize="12"
-                                                   Foreground="{Binding Kind, Converter={StaticResource CheckKindToBrush}}" />
+                                        <Grid Margin="0,14,0,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="40" Height="40" CornerRadius="13" Background="{StaticResource AccentGradient}">
+                                                    <Path Data="{StaticResource ShieldCheckIcon}" Width="18" Height="18" Stretch="Uniform" Stroke="White"
+                                                          StrokeThickness="2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                </Border>
+                                                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding SelectedStrategy.Name, Converter={StaticResource StrategyTitle}}" FontSize="19"
+                                                               FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding SelectedStrategy.Name, StringFormat={}{0}.bat}" FontSize="12.5"
+                                                               Foreground="{StaticResource Text3Brush}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <Path Data="{StaticResource ChevronIcon}" Width="9" Height="14" Stretch="Uniform" HorizontalAlignment="Right"
+                                                  Stroke="{StaticResource Text2Brush}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                        </Grid>
                                     </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Button Grid.Column="1" Style="{StaticResource FlatButton}" Background="{StaticResource SurfaceBrush}"
-                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Width="52"
-                            HorizontalContentAlignment="Center" Command="{Binding CheckHealthCommand}" ToolTip="Проверить ещё раз">
-                        <Path Data="{StaticResource RefreshIcon}" Width="16" Height="16" Style="{StaticResource StrokeIcon}" />
-                    </Button>
-                </Grid>
-            </StackPanel>
-        </Grid>
+                                </ContentControl>
+                            </Button>
 
-        <!-- ================= Стратегии ================= -->
-        <Grid Grid.Row="1" Margin="20,0"
-              Visibility="{Binding CurrentPage, Converter={StaticResource EnumToVisibility}, ConverterParameter={x:Static vm:AppPage.Strategies}}">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-            <StackPanel>
-                <TextBlock Text="Стратегии" Style="{StaticResource H1}" />
-                <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0"
-                           Text="Это разные способы обмануть блокировку. Если Discord или YouTube не открываются — попробуйте другую." />
-            </StackPanel>
-
-            <!-- Автоподбор -->
-            <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,14,0,10">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Path Data="{StaticResource BoltIcon}" Width="16" Height="16" Stretch="Uniform" Fill="{StaticResource AccentBrush}" />
-                        <TextBlock Text="Автоподбор" Margin="8,0,0,0" Style="{StaticResource CardTitle}" />
-                    </StackPanel>
-                    <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,10"
-                               Text="Приложение по очереди запустит стратегии и выберет ту, с которой Discord и YouTube открываются быстрее всего." />
-                    <Button Style="{StaticResource AccentButton}" Content="Подобрать лучшую" Command="{Binding AutoSelectCommand}"
-                            Visibility="{Binding IsAutoSelecting, Converter={StaticResource EmptyToCollapsed}, ConverterParameter=invert}" />
-                    <Button Style="{StaticResource FlatButton}" Background="{StaticResource Surface2Brush}" Padding="16,12"
-                            HorizontalContentAlignment="Center" Content="Остановить" Command="{Binding AutoSelectCancelCommand}"
-                            Visibility="{Binding IsAutoSelecting, Converter={StaticResource BoolToVisibility}}" />
-                    <TextBlock Text="{Binding AutoSelectProgress}" Margin="0,8,0,0" HorizontalAlignment="Center" Style="{StaticResource Caption}"
-                               Visibility="{Binding AutoSelectProgress, Converter={StaticResource EmptyToCollapsed}}" />
-                </StackPanel>
-            </Border>
-
-            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,0,-12,0" Padding="0,0,12,0">
-                <ItemsControl ItemsSource="{Binding Strategies}" Margin="0,0,0,12">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:StrategyItem}">
-                            <Button x:Name="Row" Style="{StaticResource FlatButton}" Margin="0,0,0,8" Padding="14,10"
-                                    Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                                    Command="{Binding DataContext.SelectStrategyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding}">
+                            <!-- Автоподбор (как «Премиум доступ») -->
+                            <ContentControl Grid.Row="2" Style="{StaticResource Card}" Background="{StaticResource LavenderBrush}" Margin="0,18,0,0"
+                                            Padding="24,20" local:Reveal.Delay="0.59" local:Reveal.Kind="SlideRight">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <Border x:Name="Badge" Width="38" Height="38" CornerRadius="11" Background="{StaticResource Surface2Brush}">
-                                        <Path x:Name="BadgeIcon" Data="{StaticResource ShieldIcon}" Width="16" Height="16" Stretch="Uniform"
-                                              Stroke="{StaticResource Text2Brush}" StrokeThickness="2" StrokeLineJoin="Round" />
-                                    </Border>
-                                    <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding Name, Converter={StaticResource StrategyTitle}}" FontSize="15" FontWeight="SemiBold" />
-                                            <Border Margin="8,0,0,0" Padding="6,1" CornerRadius="6" Background="{StaticResource AccentSoftBrush}"
-                                                    VerticalAlignment="Center" Visibility="{Binding IsRecommended, Converter={StaticResource BoolToVisibility}}">
-                                                <TextBlock Text="по умолчанию" FontSize="10" Foreground="{StaticResource AccentBrush}" />
-                                            </Border>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                                        <Path Data="{StaticResource BoltIcon}" Width="22" Height="22" Stretch="Uniform" VerticalAlignment="Top" Margin="0,2,0,0"
+                                              Stroke="{StaticResource AccentBrush}" StrokeThickness="1.8" StrokeLineJoin="Round" />
+                                        <StackPanel Margin="14,0,0,0" Width="170">
+                                            <TextBlock Text="Автоподбор" FontSize="17" FontWeight="SemiBold" />
+                                            <TextBlock FontSize="12.5" Margin="0,4,0,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+                                                        <Setter Property="Text" Value="{Binding AutoSelectProgress}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding AutoSelectProgress}" Value="{x:Null}">
+                                                                <Setter Property="Text" Value="Найдёт самую быструю стратегию и сделает её основной." />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                         </StackPanel>
-                                        <TextBlock Text="{Binding Name, StringFormat={}{0}.bat}" Style="{StaticResource Caption}" FontSize="12" />
                                     </StackPanel>
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Result}" FontSize="12" Margin="0,0,10,0" VerticalAlignment="Center"
-                                                   Foreground="{Binding Kind, Converter={StaticResource CheckKindToBrush}}" />
-                                        <Grid Width="20" Height="20">
-                                            <Ellipse x:Name="Radio" Stroke="{StaticResource BorderBrush}" StrokeThickness="2" />
-                                            <Ellipse x:Name="RadioDot" Margin="5" Fill="{StaticResource AccentBrush}" Visibility="Collapsed" />
-                                        </Grid>
-                                    </StackPanel>
+                                    <Button Grid.Column="1" Style="{StaticResource SoftButton}" Background="White" VerticalAlignment="Center"
+                                            Content="Найти" Command="{Binding AutoSelectCommand}"
+                                            Visibility="{Binding IsAutoSelecting, Converter={StaticResource EmptyToCollapsed}, ConverterParameter=invert}" />
+                                    <Button Grid.Column="1" Style="{StaticResource SoftButton}" Background="White" VerticalAlignment="Center"
+                                            Content="Стоп" Command="{Binding AutoSelectCancelCommand}"
+                                            Visibility="{Binding IsAutoSelecting, Converter={StaticResource BoolToVisibility}}" />
                                 </Grid>
-                            </Button>
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                    <Setter TargetName="Row" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                                    <Setter TargetName="Radio" Property="Stroke" Value="{StaticResource AccentBrush}" />
-                                    <Setter TargetName="RadioDot" Property="Visibility" Value="Visible" />
-                                    <Setter TargetName="Badge" Property="Background" Value="{StaticResource AccentSoftBrush}" />
-                                    <Setter TargetName="BadgeIcon" Property="Stroke" Value="{StaticResource AccentBrush}" />
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Grid>
-
-        <!-- ================= Настройки ================= -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
-                      Visibility="{Binding CurrentPage, Converter={StaticResource EnumToVisibility}, ConverterParameter={x:Static vm:AppPage.Settings}}">
-            <StackPanel Margin="20,0,20,16">
-                <TextBlock Text="Настройки" Style="{StaticResource H1}" />
-
-                <!-- Автозапуск -->
-                <Border Style="{StaticResource Card}" Margin="0,14,0,0">
-                    <StackPanel>
-                        <Grid>
-                            <TextBlock Text="Запускать вместе с Windows" Style="{StaticResource CardTitle}" VerticalAlignment="Center" />
-                            <Button Style="{StaticResource SwitchButton}" HorizontalAlignment="Right"
-                                    Tag="{Binding LaunchWithWindows}"
-                                    Command="{Binding SetLaunchWithWindowsCommand}"
-                                    CommandParameter="{Binding LaunchWithWindows, Converter={StaticResource Not}}" />
+                            </ContentControl>
                         </Grid>
-                        <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,0"
-                                   Text="Значок в трее появится сам. А сам обход работает как служба Windows: он включается при старте компьютера, даже если приложение не запущено." />
-                    </StackPanel>
-                </Border>
+                    </Grid>
 
-                <!-- Игровой фильтр -->
-                <Border Style="{StaticResource Card}" Margin="0,10,0,0">
-                    <StackPanel>
-                        <TextBlock Text="Игровой фильтр" Style="{StaticResource CardTitle}" />
-                        <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,10"
-                                   Text="Обходить блокировку и для игр (порты 1024–65535). Включайте, если не работают игры или голос в Discord." />
-                        <Border CornerRadius="14" Background="{StaticResource Surface2Brush}" Padding="3">
-                            <UniformGrid Rows="1">
-                                <Button Style="{StaticResource SegmentButton}" Content="Выкл"
-                                        Tag="{Binding GameFilterMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:GameFilterMode.Disabled}}"
-                                        Command="{Binding SetGameFilterCommand}" CommandParameter="{x:Static core:GameFilterMode.Disabled}" />
-                                <Button Style="{StaticResource SegmentButton}" Content="TCP+UDP"
-                                        Tag="{Binding GameFilterMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:GameFilterMode.All}}"
-                                        Command="{Binding SetGameFilterCommand}" CommandParameter="{x:Static core:GameFilterMode.All}" />
-                                <Button Style="{StaticResource SegmentButton}" Content="TCP"
-                                        Tag="{Binding GameFilterMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:GameFilterMode.Tcp}}"
-                                        Command="{Binding SetGameFilterCommand}" CommandParameter="{x:Static core:GameFilterMode.Tcp}" />
-                                <Button Style="{StaticResource SegmentButton}" Content="UDP"
-                                        Tag="{Binding GameFilterMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:GameFilterMode.Udp}}"
-                                        Command="{Binding SetGameFilterCommand}" CommandParameter="{x:Static core:GameFilterMode.Udp}" />
-                            </UniformGrid>
-                        </Border>
-                    </StackPanel>
-                </Border>
-
-                <!-- IPSet -->
-                <Border Style="{StaticResource Card}" Margin="0,10,0,0">
-                    <StackPanel>
-                        <TextBlock Text="Список IP-адресов (IPSet)" Style="{StaticResource CardTitle}" />
-                        <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,10"
-                                   Text="«Нет» — обход только по списку сайтов. «Список» — ещё и по подсетям из файла. «Все» — для любого IP (может мешать другим сайтам)." />
-                        <Border CornerRadius="14" Background="{StaticResource Surface2Brush}" Padding="3">
-                            <UniformGrid Rows="1">
-                                <Button Style="{StaticResource SegmentButton}" Content="Нет"
-                                        Tag="{Binding IpsetMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:IpsetMode.None}}"
-                                        Command="{Binding SetIpsetCommand}" CommandParameter="{x:Static core:IpsetMode.None}" />
-                                <Button Style="{StaticResource SegmentButton}" Content="Список"
-                                        Tag="{Binding IpsetMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:IpsetMode.Loaded}}"
-                                        Command="{Binding SetIpsetCommand}" CommandParameter="{x:Static core:IpsetMode.Loaded}" />
-                                <Button Style="{StaticResource SegmentButton}" Content="Все"
-                                        Tag="{Binding IpsetMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:IpsetMode.Any}}"
-                                        Command="{Binding SetIpsetCommand}" CommandParameter="{x:Static core:IpsetMode.Any}" />
-                            </UniformGrid>
-                        </Border>
-                    </StackPanel>
-                </Border>
-
-                <!-- Обновления zapret -->
-                <Border Style="{StaticResource Card}" Margin="0,10,0,0">
-                    <StackPanel>
-                        <Grid>
-                            <StackPanel>
-                                <TextBlock Text="Обновления zapret" Style="{StaticResource CardTitle}" />
-                                <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,0"
-                                           Text="{Binding ZapretVersion, StringFormat=Установлена версия {0}}" />
+                    <!-- ================= Стратегии ================= -->
+                    <Grid x:Name="StrategiesPage" Grid.Row="1"
+                          Visibility="{Binding CurrentPage, Converter={StaticResource EnumToVisibility}, ConverterParameter={x:Static vm:AppPage.Strategies}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="340" />
+                        </Grid.ColumnDefinitions>
+                        <Grid Margin="0,0,20,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Margin="34,0,0,0">
+                                <TextBlock Text="Стратегии" FontSize="13.5" Foreground="{StaticResource Text2Brush}" local:Reveal.Delay="0.1" />
+                                <Border ClipToBounds="True" Margin="0,10,0,0">
+                                    <TextBlock Text="Способы обхода" Style="{StaticResource H1}" local:Reveal.Delay="0.18" local:Reveal.Kind="LineUp" />
+                                </Border>
+                                <TextBlock Style="{StaticResource Caption}" FontSize="14.5" LineHeight="23" Margin="0,10,0,0" Width="520"
+                                           HorizontalAlignment="Left" local:Reveal.Delay="0.3"
+                                           Text="Каждая стратегия по-своему маскирует пакеты. Если что-то не открывается - выберите другую или запустите автоподбор." />
                             </StackPanel>
+                            <ContentControl Grid.Row="1" Style="{StaticResource Card}" Margin="0,22,0,0" Padding="16" local:Reveal.Delay="0.4">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,-8,0" Padding="0,0,8,0">
+                                    <ItemsControl ItemsSource="{Binding Strategies}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Columns="2" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:StrategyItem}">
+                                                <Button x:Name="Row" Style="{StaticResource FlatButton}" Padding="12,10" Margin="0,0,8,6"
+                                                        Command="{Binding DataContext.SelectStrategyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}">
+                                                    <Grid>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Border x:Name="Tile" Width="36" Height="36" CornerRadius="11" Background="#F0F4FC">
+                                                                <Path x:Name="TileIcon" Data="{StaticResource ShieldIcon}" Width="15" Height="15" Stretch="Uniform"
+                                                                      Stroke="{StaticResource Text3Brush}" StrokeThickness="1.9" StrokeLineJoin="Round" />
+                                                            </Border>
+                                                            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding Name, Converter={StaticResource StrategyTitle}}" FontSize="14.5" FontWeight="SemiBold" />
+                                                                    <Border Margin="8,0,0,0" Padding="6,1" CornerRadius="6" Background="{StaticResource AccentSoftBrush}"
+                                                                            VerticalAlignment="Center" Visibility="{Binding IsBest, Converter={StaticResource BoolToVisibility}}">
+                                                                        <TextBlock Text="лучшая" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" />
+                                                                    </Border>
+                                                                </StackPanel>
+                                                                <TextBlock Text="{Binding Name, StringFormat={}{0}.bat}" FontSize="12" Foreground="{StaticResource Text3Brush}" />
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Result}" FontSize="12" Margin="0,0,12,0" VerticalAlignment="Center"
+                                                                       Foreground="{Binding Kind, Converter={StaticResource CheckKindToBrush}}" />
+                                                            <Grid Width="18" Height="18">
+                                                                <Ellipse x:Name="Radio" Stroke="#C9D2E0" StrokeThickness="1.6" />
+                                                                <Ellipse x:Name="RadioDot" Margin="4.5" Fill="{StaticResource AccentBrush}" Visibility="Collapsed" />
+                                                            </Grid>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Button>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter TargetName="Row" Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                                                        <Setter TargetName="Tile" Property="Background" Value="White" />
+                                                        <Setter TargetName="TileIcon" Property="Stroke" Value="{StaticResource AccentBrush}" />
+                                                        <Setter TargetName="Radio" Property="Stroke" Value="{StaticResource AccentBrush}" />
+                                                        <Setter TargetName="RadioDot" Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </ContentControl>
                         </Grid>
-                        <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,10"
-                                   Text="Проверит, не вышла ли новая версия у Flowseal. Если вышла — скачает, перенесёт ваши списки и настройки и перезапустится на ней." />
-                        <Button Style="{StaticResource AccentButton}" Content="Проверить обновления" Command="{Binding CheckUpdatesCommand}"
-                                IsEnabled="{Binding IsUpdating, Converter={StaticResource Not}}" />
-                        <TextBlock Text="{Binding UpdateStatus}" Margin="0,8,0,0" FontSize="13" TextWrapping="Wrap" HorizontalAlignment="Center"
-                                   TextAlignment="Center"
-                                   Visibility="{Binding UpdateStatus, Converter={StaticResource EmptyToCollapsed}}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                    <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding UpdateFailed}" Value="True">
-                                            <Setter Property="Foreground" Value="{StaticResource BadBrush}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </StackPanel>
-                </Border>
 
-                <!-- Что это -->
-                <Border Style="{StaticResource Card}" Margin="0,10,0,0">
-                    <StackPanel>
-                        <TextBlock Text="Что делает Запрет" Style="{StaticResource CardTitle}" />
-                        <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,0"
-                                   Text="Провайдер узнаёт, на какой сайт вы идёте, по первым пакетам соединения и обрывает его. Запрет (программа winws из zapret) немного «портит» эти пакеты — дробит их и подмешивает обманки — так, что провайдер не может их прочитать, а сайт понимает нормально." />
-                        <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0"
-                                   Text="Это не VPN: трафик идёт напрямую, скорость и пинг почти не меняются, ваш IP остаётся прежним. Работает только для сайтов из списков (Discord, YouTube и др.)." />
-                    </StackPanel>
-                </Border>
+                        <StackPanel Grid.Column="1">
+                            <ContentControl Style="{StaticResource Card}" Background="{StaticResource LavenderBrush}" Padding="24,22"
+                                            local:Reveal.Delay="0.3" local:Reveal.Kind="SlideRight">
+                                <StackPanel>
+                                    <Path Data="{StaticResource BoltIcon}" Width="24" Height="24" Stretch="Uniform" HorizontalAlignment="Left"
+                                          Stroke="{StaticResource AccentBrush}" StrokeThickness="1.8" StrokeLineJoin="Round" />
+                                    <TextBlock Text="Автоподбор" FontSize="22" FontWeight="SemiBold" Margin="0,14,0,0" />
+                                    <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,18"
+                                               Text="Приложение по очереди запустит стратегии и оставит ту, с которой Discord и YouTube открываются быстрее всего. Она станет основной." />
+                                    <Button Style="{StaticResource PrimaryButton}" Content="Подобрать лучшую" Command="{Binding AutoSelectCommand}"
+                                            Visibility="{Binding IsAutoSelecting, Converter={StaticResource EmptyToCollapsed}, ConverterParameter=invert}" />
+                                    <Button Style="{StaticResource SoftButton}" Background="White" Height="42" Content="Остановить"
+                                            Command="{Binding AutoSelectCancelCommand}"
+                                            Visibility="{Binding IsAutoSelecting, Converter={StaticResource BoolToVisibility}}" />
+                                    <TextBlock Text="{Binding AutoSelectProgress}" Margin="0,12,0,0" FontSize="13" TextWrapping="Wrap"
+                                               HorizontalAlignment="Center" TextAlignment="Center" Foreground="{StaticResource Text2Brush}"
+                                               Visibility="{Binding AutoSelectProgress, Converter={StaticResource EmptyToCollapsed}}" />
+                                </StackPanel>
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource Card}" Margin="0,18,0,0" Padding="24,20" local:Reveal.Delay="0.42" local:Reveal.Kind="SlideRight">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="{StaticResource PinIcon}" Width="17" Height="17" Stretch="Uniform" Stroke="{StaticResource TextBrush}"
+                                              StrokeThickness="1.8" StrokeLineJoin="Round" />
+                                        <TextBlock Text="Сейчас включена" Style="{StaticResource CardTitle}" Margin="10,0,0,0" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding SelectedStrategy.Name, Converter={StaticResource StrategyTitle}}" FontSize="26"
+                                               FontWeight="SemiBold" Margin="0,14,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding SelectedStrategy.Name, StringFormat={}{0}.bat}" FontSize="12.5" Foreground="{StaticResource Text3Brush}" />
+                                </StackPanel>
+                            </ContentControl>
+                            <Border Margin="0,18,0,0" Padding="16,12" CornerRadius="16" Background="{StaticResource BadSoftBrush}"
+                                    Visibility="{Binding ErrorMessage, Converter={StaticResource EmptyToCollapsed}}">
+                                <TextBlock Text="{Binding ErrorMessage}" Foreground="#B42318" FontSize="13" TextWrapping="Wrap" />
+                            </Border>
+                        </StackPanel>
+                    </Grid>
 
-                <Grid Margin="4,14,4,0">
-                    <TextBlock Text="{Binding ZapretVersion, StringFormat=zapret-discord-youtube {0} (Flowseal)}" Style="{StaticResource Caption}"
-                               FontSize="11" VerticalAlignment="Center" />
-                    <Button Style="{StaticResource FlatButton}" HorizontalAlignment="Right" Padding="10,6" Background="{StaticResource SurfaceBrush}"
-                            Click="OpenFolder_Click" Content="Открыть папку" FontSize="12" />
+                    <!-- ================= Настройки ================= -->
+                    <Grid x:Name="SettingsPage" Grid.Row="1"
+                          Visibility="{Binding CurrentPage, Converter={StaticResource EnumToVisibility}, ConverterParameter={x:Static vm:AppPage.Settings}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="340" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,20,0">
+                            <StackPanel Margin="34,0,0,0">
+                                <TextBlock Text="Настройки" FontSize="13.5" Foreground="{StaticResource Text2Brush}" local:Reveal.Delay="0.1" />
+                                <Border ClipToBounds="True" Margin="0,10,0,0">
+                                    <TextBlock Text="Под себя" Style="{StaticResource H1}" local:Reveal.Delay="0.18" local:Reveal.Kind="LineUp" />
+                                </Border>
+                            </StackPanel>
+
+                            <UniformGrid Columns="2" Margin="0,24,0,0">
+                                <ContentControl Style="{StaticResource Card}" Margin="0,0,9,18" Padding="22,20" local:Reveal.Delay="0.3">
+                                    <StackPanel>
+                                        <Grid>
+                                            <TextBlock Text="Запуск с Windows" Style="{StaticResource CardTitle}" VerticalAlignment="Center" />
+                                            <Button Style="{StaticResource SwitchButton}" HorizontalAlignment="Right"
+                                                    Tag="{Binding LaunchWithWindows}" Command="{Binding SetLaunchWithWindowsCommand}"
+                                                    CommandParameter="{Binding LaunchWithWindows, Converter={StaticResource Not}}" />
+                                        </Grid>
+                                        <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,0"
+                                                   Text="Значок в трее появится сам. Обход работает службой Windows и включается при старте компьютера даже без приложения." />
+                                    </StackPanel>
+                                </ContentControl>
+
+                                <ContentControl Style="{StaticResource Card}" Margin="9,0,0,18" Padding="22,20" local:Reveal.Delay="0.36">
+                                    <StackPanel>
+                                        <TextBlock Text="Файлы zapret" Style="{StaticResource CardTitle}" />
+                                        <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,14"
+                                                   Text="{Binding ZapretVersion, StringFormat=Версия zapret-discord-youtube {0} от Flowseal. Свои сайты - в файле list-general-user.txt в папке lists.}" />
+                                        <Button Style="{StaticResource SoftButton}" HorizontalAlignment="Left" Click="OpenFolder_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource FolderIcon}" Width="14" Height="14" Style="{StaticResource StrokeIcon}" />
+                                                <TextBlock Text="Открыть папку" Margin="8,0,0,0" FontWeight="SemiBold"
+                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </ContentControl>
+
+                                <ContentControl Style="{StaticResource Card}" Margin="0,0,9,0" Padding="22,20" local:Reveal.Delay="0.42">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource GameIcon}" Width="18" Height="18" Stretch="Uniform" Stroke="{StaticResource TextBrush}"
+                                                  StrokeThickness="1.7" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                            <TextBlock Text="Игровой фильтр" Style="{StaticResource CardTitle}" Margin="10,0,0,0" />
+                                        </StackPanel>
+                                        <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,14"
+                                                   Text="Обход и для игр (порты 1024-65535). Включайте, если не работают игры или голос в Discord." />
+                                        <Border CornerRadius="14" Background="#EEF2F8" Padding="3">
+                                            <UniformGrid Rows="1">
+                                                <Button Style="{StaticResource SegmentButton}" Content="Выкл"
+                                                        Tag="{Binding GameFilterMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:GameFilterMode.Disabled}}"
+                                                        Command="{Binding SetGameFilterCommand}" CommandParameter="{x:Static core:GameFilterMode.Disabled}" />
+                                                <Button Style="{StaticResource SegmentButton}" Content="TCP+UDP" Padding="0,8"
+                                                        Tag="{Binding GameFilterMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:GameFilterMode.All}}"
+                                                        Command="{Binding SetGameFilterCommand}" CommandParameter="{x:Static core:GameFilterMode.All}" />
+                                                <Button Style="{StaticResource SegmentButton}" Content="TCP"
+                                                        Tag="{Binding GameFilterMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:GameFilterMode.Tcp}}"
+                                                        Command="{Binding SetGameFilterCommand}" CommandParameter="{x:Static core:GameFilterMode.Tcp}" />
+                                                <Button Style="{StaticResource SegmentButton}" Content="UDP"
+                                                        Tag="{Binding GameFilterMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:GameFilterMode.Udp}}"
+                                                        Command="{Binding SetGameFilterCommand}" CommandParameter="{x:Static core:GameFilterMode.Udp}" />
+                                            </UniformGrid>
+                                        </Border>
+                                    </StackPanel>
+                                </ContentControl>
+
+                                <ContentControl Style="{StaticResource Card}" Margin="9,0,0,0" Padding="22,20" local:Reveal.Delay="0.48">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource NetIcon}" Width="18" Height="18" Stretch="Uniform" Stroke="{StaticResource TextBrush}"
+                                                  StrokeThickness="1.7" />
+                                            <TextBlock Text="Список IP (IPSet)" Style="{StaticResource CardTitle}" Margin="10,0,0,0" />
+                                        </StackPanel>
+                                        <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,14"
+                                                   Text="«Нет» - только по списку сайтов. «Список» - ещё и по подсетям. «Все» - любой IP, может мешать другим сайтам." />
+                                        <Border CornerRadius="14" Background="#EEF2F8" Padding="3">
+                                            <UniformGrid Rows="1">
+                                                <Button Style="{StaticResource SegmentButton}" Content="Нет"
+                                                        Tag="{Binding IpsetMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:IpsetMode.None}}"
+                                                        Command="{Binding SetIpsetCommand}" CommandParameter="{x:Static core:IpsetMode.None}" />
+                                                <Button Style="{StaticResource SegmentButton}" Content="Список"
+                                                        Tag="{Binding IpsetMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:IpsetMode.Loaded}}"
+                                                        Command="{Binding SetIpsetCommand}" CommandParameter="{x:Static core:IpsetMode.Loaded}" />
+                                                <Button Style="{StaticResource SegmentButton}" Content="Все"
+                                                        Tag="{Binding IpsetMode, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static core:IpsetMode.Any}}"
+                                                        Command="{Binding SetIpsetCommand}" CommandParameter="{x:Static core:IpsetMode.Any}" />
+                                            </UniformGrid>
+                                        </Border>
+                                    </StackPanel>
+                                </ContentControl>
+                            </UniformGrid>
+                        </StackPanel>
+
+                        <ContentControl Grid.Column="1" Style="{StaticResource Card}" Padding="24,22" VerticalAlignment="Top"
+                                        local:Reveal.Delay="0.3" local:Reveal.Kind="SlideRight">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource ShieldCheckIcon}" Width="18" Height="18" Stretch="Uniform" Stroke="{StaticResource AccentBrush}"
+                                          StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                    <TextBlock Text="Что делает Запрет" Style="{StaticResource CardTitle}" Margin="10,0,0,0" />
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource Caption}" FontSize="13.5" LineHeight="21" Margin="0,14,0,0"
+                                           Text="Провайдер узнаёт, на какой сайт вы идёте, по первым пакетам соединения - и обрывает его. Запрет (программа winws из zapret) немного «портит» эти пакеты: дробит их и подмешивает обманки. Провайдер их не понимает, а сайт - понимает." />
+                                <TextBlock Style="{StaticResource Caption}" FontSize="13.5" LineHeight="21" Margin="0,12,0,0"
+                                           Text="Это не VPN: трафик идёт напрямую, скорость и пинг почти не меняются, IP остаётся вашим. Работает для сайтов из списков - Discord, YouTube и других." />
+                            </StackPanel>
+                        </ContentControl>
+                    </Grid>
                 </Grid>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- ================= Нижняя навигация ================= -->
-        <Border Grid.Row="2" Margin="16,0,16,14" CornerRadius="20" Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="6">
-            <UniformGrid Rows="1">
-                <Button Style="{StaticResource NavButton}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:AppPage.Home}"
-                        Tag="{Binding CurrentPage, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static vm:AppPage.Home}}">
-                    <StackPanel>
-                        <Path Data="{StaticResource HomeIcon}" Width="20" Height="20" Style="{StaticResource StrokeIcon}" />
-                        <TextBlock Text="Главная" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center"
-                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                    </StackPanel>
-                </Button>
-                <Button Style="{StaticResource NavButton}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:AppPage.Strategies}"
-                        Tag="{Binding CurrentPage, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static vm:AppPage.Strategies}}">
-                    <StackPanel>
-                        <Path Data="{StaticResource ListIcon}" Width="20" Height="20" Style="{StaticResource StrokeIcon}" />
-                        <TextBlock Text="Стратегии" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center"
-                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                    </StackPanel>
-                </Button>
-                <Button Style="{StaticResource NavButton}" Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:AppPage.Settings}"
-                        Tag="{Binding CurrentPage, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static vm:AppPage.Settings}}">
-                    <StackPanel>
-                        <Path Data="{StaticResource GearIcon}" Width="20" Height="20" Style="{StaticResource StrokeIcon}" />
-                        <TextBlock Text="Настройки" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Center"
-                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                    </StackPanel>
-                </Button>
-            </UniformGrid>
-        </Border>
+            </Grid>
+        </Viewbox>
     </Grid>
 </Window>

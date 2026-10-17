@@ -213,7 +213,7 @@ public sealed class BypassControllerTests : IDisposable
     [Fact]
     public async Task AutoSelect_EnablesFirstFullyWorkingStrategy_AndStopsSearching()
     {
-        // syndata есть только в ALT5 и ALT7 — первой по порядку проверяется ALT5.
+        // syndata есть только в ALT5 и ALT7 - первой по порядку проверяется ALT5.
         var progress = new List<StrategyScore>();
 
         var best = await _sut.AutoSelectAsync(TesterWhereWorks("syndata"), new SyncProgress<StrategyScore>(progress.Add));

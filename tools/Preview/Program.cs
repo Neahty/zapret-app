@@ -18,6 +18,9 @@ public static class Program
         Directory.CreateDirectory(outDir);
         var app = new Zapret.App.App();
         app.InitializeComponent();
+        Zapret.App.Reveal.Enabled = false; // снимаем готовый кадр, без анимации появления
+        // Без Application.Run ресурсы остаются «отложенными» и ломаются на втором окне - загружаем их сразу.
+        foreach (var key in app.Resources.Keys.Cast<object>().ToList()) _ = app.Resources[key];
 
         var tmp = Path.Combine(Path.GetTempPath(), "zapret-preview", Guid.NewGuid().ToString("N"));
         var paths = ZapretInstaller.EnsureInstalled(() => File.OpenRead(args[1]), tmp);
@@ -32,24 +35,45 @@ public static class Program
         vm.InitializeAsync().GetAwaiter().GetResult();
         vm.Tick();
 
-        Snap(vm, outDir, "1-home-on.png");
+        if (Environment.GetEnvironmentVariable("PREVIEW_NAV_TEST") == "1")
+        {
+            // Как в настоящем приложении: одно окно, переключаем разделы.
+            var win = new Zapret.App.MainWindow { DataContext = vm, Left = -6000, ShowActivated = false };
+            win.Show();
+            foreach (var page in new[] { AppPage.Strategies, AppPage.Settings, AppPage.Home })
+            {
+                vm.CurrentPage = page;
+                win.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                win.UpdateLayout();
+                Console.WriteLine($"OK: {page}");
+            }
+            return;
+        }
 
-        vm.CurrentPage = AppPage.Strategies;
+        // Один снимок на запуск (третий аргумент): у второго окна без Application.Run ломаются ресурсы.
         foreach (var (s, i) in vm.Strategies.Select((s, i) => (s, i)).Take(6))
             s.Apply(new StrategyScore(s.Name, i == 2 ? 3 : i == 4 ? 0 : 6, 6, TimeSpan.FromMilliseconds(90 + i * 37)));
-        vm.AutoSelectProgress = "Лучшая: general";
-        Snap(vm, outDir, "2-strategies.png");
-
-        vm.CurrentPage = AppPage.Settings;
-        Snap(vm, outDir, "3-settings.png");
-
-        vm.CurrentPage = AppPage.Home;
-        vm.ToggleCommand.ExecuteAsync(null).GetAwaiter().GetResult();
-        Snap(vm, outDir, "4-home-off.png");
-
-        services.FailToStart = true;
-        vm.ToggleCommand.ExecuteAsync(null).GetAwaiter().GetResult();
-        Snap(vm, outDir, "5-home-error.png");
+        vm.Strategies[1].IsBest = true;
+        var shot = args.Length > 2 ? args[2] : "home-on";
+        switch (shot)
+        {
+            case "strategies":
+                vm.CurrentPage = AppPage.Strategies;
+                vm.AutoSelectProgress = "Лучшая: ALT - теперь она по умолчанию";
+                break;
+            case "settings":
+                vm.CurrentPage = AppPage.Settings;
+                break;
+            case "home-off":
+                vm.ToggleCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+                break;
+            case "home-error":
+                vm.ToggleCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+                services.FailToStart = true;
+                vm.ToggleCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+                break;
+        }
+        Snap(vm, outDir, shot + ".png");
 
         try { Directory.Delete(tmp, true); } catch (IOException) { }
     }
@@ -63,14 +87,14 @@ public static class Program
 
     private static void Snap(MainViewModel vm, string dir, string name)
     {
-        // Каждый снимок — со свежего окна: RenderTargetBitmap у скрытого окна отдаёт устаревшую картинку.
+        // Каждый снимок - со свежего окна: RenderTargetBitmap у скрытого окна отдаёт устаревшую картинку.
         var w = new Zapret.App.MainWindow
         {
             DataContext = vm, WindowStartupLocation = WindowStartupLocation.Manual, Left = -6000, Top = 0, ShowActivated = false,
         };
         w.Show();
         try { Snap(w, dir, name); }
-        finally { w.Close(); }
+        finally { w.Hide(); } // Close() ломает отложенные ресурсы приложения для следующих окон
     }
 
     private static void Snap(Window w, string dir, string name)
@@ -82,7 +106,7 @@ public static class Program
         timer.Start();
         Dispatcher.PushFrame(frame);
         var content = (FrameworkElement)w.Content;
-        // Окно за пределами экрана может не получить размер — раскладываем содержимое вручную.
+        // Окно за пределами экрана может не получить размер - раскладываем содержимое вручную.
         content.Measure(new Size(w.Width, w.Height));
         content.Arrange(new Rect(0, 0, w.Width, w.Height));
         content.UpdateLayout();

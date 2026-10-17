@@ -44,7 +44,7 @@ public sealed class TrayIcon : IDisposable
     private void Update()
     {
         _icon.Icon = _vm.IsOn ? _onIcon : _offIcon;
-        var text = $"Запрет — {(_vm.IsOn ? "включён" : "выключен")}";
+        var text = $"Запрет - {(_vm.IsOn ? "включён" : "выключен")}";
         if (_vm.IsOn && _vm.SelectedStrategy is { } s) text += $"\n{s.Name}";
         _icon.Text = text.Length > 63 ? text[..63] : text;
         _toggleItem.Text = _vm.IsOn ? "Выключить обход" : "Включить обход";

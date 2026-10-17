@@ -198,10 +198,39 @@ public sealed class MainViewModelTests : IDisposable
         await _sut.AutoSelectCommand.ExecuteAsync(null);
 
         _sut.IsAutoSelecting.Should().BeFalse();
-        _sut.AutoSelectProgress.Should().Be("Лучшая: general");
+        _sut.AutoSelectProgress.Should().Be("Лучшая: general - теперь она по умолчанию");
         _sut.Strategies[0].Kind.Should().Be(CheckKind.Good);
         _sut.Strategies[0].Result.Should().Be("6/6 · 80 мс");
         _sut.IsOn.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AutoSelect_MakesWinnerTheDefault_EvenAfterRestart()
+    {
+        // Пусть открывает сайты только ALT5 (в ней есть syndata).
+        _store.Save(new AppSettings { Enabled = false });
+        var launcher = new FakeLauncher();
+        var probe = new FakeProbe(_ => new ProbeResult(
+            launcher.Started.LastOrDefault()?.Any(a => a.Contains("syndata")) == true, TimeSpan.FromMilliseconds(80)));
+        var sut = new MainViewModel(_controller, new HealthChecker(FakeProbe.AllOk()),
+            () => new StrategyTester(launcher, probe, HealthChecker.AllUrls, TimeSpan.Zero),
+            _autostart, new IpsetManager(_zapret.Paths.Lists), _time);
+        await sut.InitializeAsync();
+
+        await sut.AutoSelectCommand.ExecuteAsync(null);
+
+        _store.Current.Strategy.Should().Be("general (ALT5)", "её будет включать служба при каждом старте");
+        _store.Current.BestStrategy.Should().Be("general (ALT5)");
+        _store.Current.Enabled.Should().BeTrue("автоподбор включает обход с найденной стратегией");
+        sut.Strategies.Should().ContainSingle(s => s.IsBest).Which.Name.Should().Be("general (ALT5)");
+
+        // Новый запуск приложения: пометка «лучшая» и выбор сохранились.
+        var reopened = new MainViewModel(_controller, new HealthChecker(FakeProbe.AllOk()),
+            () => new StrategyTester(launcher, probe, HealthChecker.AllUrls, TimeSpan.Zero),
+            _autostart, new IpsetManager(_zapret.Paths.Lists), _time);
+        await reopened.InitializeAsync();
+        reopened.SelectedStrategy!.Name.Should().Be("general (ALT5)");
+        reopened.Strategies.Single(s => s.IsBest).Name.Should().Be("general (ALT5)");
     }
 
     [Fact]

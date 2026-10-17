@@ -5,55 +5,68 @@
              xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
-        <!-- ====== Палитра (тёмная, в духе Happ) ====== -->
-        <Color x:Key="BgColor">#0B0D12</Color>
-        <Color x:Key="AccentColor">#2EE6A6</Color>
-        <Color x:Key="Accent2Color">#1FB5E8</Color>
-        <SolidColorBrush x:Key="BgBrush" Color="{StaticResource BgColor}" />
-        <SolidColorBrush x:Key="SurfaceBrush" Color="#151922" />
-        <SolidColorBrush x:Key="Surface2Brush" Color="#1D222D" />
-        <SolidColorBrush x:Key="BorderBrush" Color="#252B38" />
-        <SolidColorBrush x:Key="TextBrush" Color="#F2F4F8" />
-        <SolidColorBrush x:Key="Text2Brush" Color="#8A93A6" />
+        <!-- ====== Светлая палитра: белые карточки на светло-голубом, синий акцент ====== -->
+        <Color x:Key="AccentColor">#2F6BFF</Color>
+        <Color x:Key="Accent2Color">#5B8CFF</Color>
+        <SolidColorBrush x:Key="BgBrush" Color="#EEF2F8" />
+        <SolidColorBrush x:Key="CardBrush" Color="#F7FFFFFF" />
+        <SolidColorBrush x:Key="CardLineBrush" Color="#E3E9F3" />
+        <SolidColorBrush x:Key="TextBrush" Color="#0F1B2D" />
+        <SolidColorBrush x:Key="Text2Brush" Color="#5F6D82" />
+        <SolidColorBrush x:Key="Text3Brush" Color="#97A3B6" />
         <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
-        <SolidColorBrush x:Key="AccentSoftBrush" Color="#1A2EE6A6" />
-        <SolidColorBrush x:Key="WarnBrush" Color="#F5B94A" />
-        <SolidColorBrush x:Key="BadBrush" Color="#FF5C6C" />
-        <SolidColorBrush x:Key="BadSoftBrush" Color="#22FF5C6C" />
-        <LinearGradientBrush x:Key="OnGradient" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="{StaticResource AccentColor}" Offset="0" />
-            <GradientStop Color="{StaticResource Accent2Color}" Offset="1" />
+        <SolidColorBrush x:Key="AccentSoftBrush" Color="#EAF1FF" />
+        <SolidColorBrush x:Key="GoodBrush" Color="#22C55E" />
+        <SolidColorBrush x:Key="WarnBrush" Color="#F59E0B" />
+        <SolidColorBrush x:Key="BadBrush" Color="#EF4444" />
+        <SolidColorBrush x:Key="BadSoftBrush" Color="#FDECEC" />
+        <LinearGradientBrush x:Key="AccentGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="{StaticResource Accent2Color}" Offset="0" />
+            <GradientStop Color="{StaticResource AccentColor}" Offset="1" />
         </LinearGradientBrush>
-        <LinearGradientBrush x:Key="OffGradient" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#2A303C" Offset="0" />
-            <GradientStop Color="#1C212B" Offset="1" />
+        <!-- Нежный лавандовый, как у карточки «Премиум» в референсе -->
+        <LinearGradientBrush x:Key="LavenderBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#EEF3FF" Offset="0" />
+            <GradientStop Color="#F1ECFF" Offset="1" />
         </LinearGradientBrush>
 
-        <!-- Tag хранит bool, а Value="True" в триггере — строка; сравниваем с настоящим bool. -->
+        <DropShadowEffect x:Key="CardShadow" Color="#1E3A8A" BlurRadius="28" ShadowDepth="6" Direction="270" Opacity="0.07" />
+
+        <!-- Tag хранит bool, а Value="True" в триггере - строка; сравниваем с настоящим bool. -->
         <sys:Boolean x:Key="True">True</sys:Boolean>
 
         <FontFamily x:Key="UiFont">Segoe UI Variable Display, Segoe UI</FontFamily>
 
         <!-- ====== Иконки (24×24, рисуются обводкой) ====== -->
         <Geometry x:Key="PowerIcon">M 12,2.5 L 12,11 M 6.3,5.8 A 8.4,8.4 0 1 0 17.7,5.8</Geometry>
-        <Geometry x:Key="HomeIcon">M 3,11 L 12,3.5 L 21,11 M 5.5,9.5 L 5.5,20 L 18.5,20 L 18.5,9.5</Geometry>
-        <Geometry x:Key="ListIcon">M 4,6 L 20,6 M 4,12 L 20,12 M 4,18 L 20,18</Geometry>
+        <Geometry x:Key="HomeIcon">M 3.5,11 L 12,3.8 L 20.5,11 L 20.5,20 L 14.5,20 L 14.5,14.5 L 9.5,14.5 L 9.5,20 L 3.5,20 Z</Geometry>
+        <Geometry x:Key="ListIcon">M 8,6 L 20,6 M 8,12 L 20,12 M 8,18 L 20,18 M 4,6 L 4.01,6 M 4,12 L 4.01,12 M 4,18 L 4.01,18</Geometry>
         <Geometry x:Key="GearIcon">M 12,8.5 A 3.5,3.5 0 1 0 12.01,8.5 M 12,2.5 L 12,5 M 12,19 L 12,21.5 M 2.5,12 L 5,12 M 19,12 L 21.5,12 M 5.3,5.3 L 7.1,7.1 M 16.9,16.9 L 18.7,18.7 M 5.3,18.7 L 7.1,16.9 M 16.9,7.1 L 18.7,5.3</Geometry>
-        <Geometry x:Key="ChevronIcon">M 9,5 L 16,12 L 9,19</Geometry>
         <Geometry x:Key="ShieldIcon">M 12,2.5 L 20,5.5 L 20,11.5 C 20,16.5 16.5,20 12,21.5 C 7.5,20 4,16.5 4,11.5 L 4,5.5 Z</Geometry>
+        <Geometry x:Key="ShieldCheckIcon">M 12,2.5 L 20,5.5 L 20,11.5 C 20,16.5 16.5,20 12,21.5 C 7.5,20 4,16.5 4,11.5 L 4,5.5 Z M 8.5,12 L 11,14.5 L 15.5,9.5</Geometry>
         <Geometry x:Key="BoltIcon">M 13,2.5 L 5,13.5 L 11.5,13.5 L 10.5,21.5 L 19,10 L 12.5,10 Z</Geometry>
         <Geometry x:Key="RefreshIcon">M 19.5,12 A 7.5,7.5 0 1 1 17,6.4 M 17.5,2.5 L 17.5,6.8 L 13.2,6.8</Geometry>
         <Geometry x:Key="MinIcon">M 6,12 L 18,12</Geometry>
         <Geometry x:Key="CloseIcon">M 7,7 L 17,17 M 17,7 L 7,17</Geometry>
+        <Geometry x:Key="ChevronIcon">M 9,5.5 L 15.5,12 L 9,18.5</Geometry>
+        <Geometry x:Key="PinIcon">M 12,21 C 12,21 5,14.5 5,9.5 A 7,7 0 0 1 19,9.5 C 19,14.5 12,21 12,21 Z M 12,7 A 2.5,2.5 0 1 0 12.01,7</Geometry>
+        <Geometry x:Key="PulseIcon">M 3,12 L 7,12 L 9.5,6 L 13.5,18 L 16,12 L 21,12</Geometry>
+        <Geometry x:Key="ClockIcon">M 12,3 A 9,9 0 1 0 12.01,3 M 12,7 L 12,12 L 15.5,14</Geometry>
+        <Geometry x:Key="GameIcon">M 6,9 L 18,9 A 4,4 0 0 1 18,17 L 6,17 A 4,4 0 0 1 6,9 Z M 8,11.5 L 8,14.5 M 6.5,13 L 9.5,13 M 15.5,12.5 L 15.51,12.5 M 17.5,14 L 17.51,14</Geometry>
+        <Geometry x:Key="NetIcon">M 12,3 A 9,9 0 1 0 12.01,3 M 3,12 L 21,12 M 12,3 C 15,6 15,18 12,21 M 12,3 C 9,6 9,18 12,21</Geometry>
+        <Geometry x:Key="FolderIcon">M 3,7 L 3,19 L 21,19 L 21,9 L 11,9 L 9,6 L 3,6 Z</Geometry>
+        <Geometry x:Key="ChatIcon">M 4,5 L 20,5 L 20,16 L 9,16 L 5,19.5 L 5,16 L 4,16 Z</Geometry>
+        <Geometry x:Key="PlayIcon">M 3,6 A 3,3 0 0 1 6,3 L 18,3 A 3,3 0 0 1 21,6 L 21,18 A 3,3 0 0 1 18,21 L 6,21 A 3,3 0 0 1 3,18 Z M 10,8.5 L 15.5,12 L 10,15.5 Z</Geometry>
 
         <!-- ====== Конвертеры ====== -->
         <local:EnumEqualsConverter x:Key="EnumEquals" />
         <local:EnumToVisibilityConverter x:Key="EnumToVisibility" />
         <local:NotConverter x:Key="Not" />
         <local:EmptyToCollapsedConverter x:Key="EmptyToCollapsed" />
-        <local:CheckKindToBrushConverter x:Key="CheckKindToBrush" Good="{StaticResource AccentBrush}" Partial="{StaticResource WarnBrush}"
-                                         Bad="{StaticResource BadBrush}" Neutral="{StaticResource Text2Brush}" />
+        <local:CheckKindToBrushConverter x:Key="CheckKindToBrush" Good="{StaticResource GoodBrush}" Partial="{StaticResource WarnBrush}"
+                                         Bad="{StaticResource BadBrush}" Neutral="{StaticResource Text3Brush}" />
         <local:StrategyTitleConverter x:Key="StrategyTitle" />
+        <local:RuLabelConverter x:Key="RuLabel" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
         <!-- ====== Текст ====== -->
@@ -62,37 +75,51 @@
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
         </Style>
         <Style x:Key="H1" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-            <Setter Property="FontSize" Value="26" />
-            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="40" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="LineHeight" Value="48" />
+            <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
         </Style>
         <Style x:Key="Caption" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="LineHeight" Value="20" />
         </Style>
         <Style x:Key="CardTitle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
             <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
-        <Style x:Key="Card" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="18" />
-            <Setter Property="Padding" Value="16" />
-        </Style>
-
         <Style x:Key="StrokeIcon" TargetType="Path">
             <Setter Property="Stretch" Value="Uniform" />
-            <Setter Property="StrokeThickness" Value="2" />
+            <Setter Property="StrokeThickness" Value="1.9" />
             <Setter Property="StrokeStartLineCap" Value="Round" />
             <Setter Property="StrokeEndLineCap" Value="Round" />
             <Setter Property="StrokeLineJoin" Value="Round" />
-            <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+            <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Control}}" />
         </Style>
 
-        <!-- ====== Плоская кнопка-карточка ====== -->
+        <!-- Белая карточка с мягкой голубоватой тенью. Тень - на отдельном слое под содержимым:
+             эффект на самой карточке размыл бы текст внутри. -->
+        <Style x:Key="Card" TargetType="ContentControl">
+            <Setter Property="Background" Value="{StaticResource CardBrush}" />
+            <Setter Property="Padding" Value="22" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContentControl">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{StaticResource CardLineBrush}" BorderThickness="1"
+                                    CornerRadius="22" Effect="{StaticResource CardShadow}" />
+                            <ContentPresenter Margin="{TemplateBinding Padding}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ====== Кнопки ====== -->
         <Style x:Key="FlatButton" TargetType="Button">
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             <Setter Property="Background" Value="Transparent" />
@@ -101,12 +128,14 @@
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="14" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -124,29 +153,52 @@
             </Setter>
         </Style>
 
-        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
-            <Setter Property="Background" Value="{StaticResource OnGradient}" />
-            <Setter Property="Foreground" Value="#0B0D12" />
-            <Setter Property="Padding" Value="16,12" />
+        <!-- Синяя кнопка-«таблетка» - главное действие на экране -->
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
+            <Setter Property="Background" Value="{StaticResource AccentGradient}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
 
-        <!-- Кнопки окна -->
-        <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
-            <Setter Property="Width" Value="36" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
-        </Style>
-
-        <!-- Сегмент переключателя: выбран, когда Tag = True -->
-        <Style x:Key="SegmentButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
-            <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
-            <Setter Property="Padding" Value="6,9" />
+        <!-- Светлая кнопка-«таблетка» (как «Сегодня» в референсе) -->
+        <Style x:Key="SoftButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
+            <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Height" Value="34" />
             <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <!-- Маленькие кнопки окна -->
+        <Style x:Key="ChromeButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E4EAF4" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Пункт боковой панели: активен, когда Tag = True -->
+        <Style x:Key="NavButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
+            <Setter Property="Height" Value="50" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Style.Triggers>
                 <Trigger Property="Tag" Value="{StaticResource True}">
                     <Setter Property="Background" Value="{StaticResource AccentSoftBrush}" />
@@ -156,14 +208,18 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Вкладка нижней навигации: активна, когда Tag = True -->
-        <Style x:Key="NavButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
+        <!-- Сегмент переключателя: выбран, когда Tag = True -->
+        <Style x:Key="SegmentButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
             <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+            <Setter Property="Padding" Value="6,8" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="Padding" Value="0,8" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Style.Triggers>
                 <Trigger Property="Tag" Value="{StaticResource True}">
+                    <Setter Property="Background" Value="White" />
                     <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -175,16 +231,13 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Track" Width="46" Height="26" CornerRadius="13" Background="{StaticResource Surface2Brush}"
-                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
-                            <Ellipse x:Name="Knob" Width="20" Height="20" Margin="3,0" HorizontalAlignment="Left" Fill="{StaticResource Text2Brush}" />
+                        <Border x:Name="Track" Width="46" Height="26" CornerRadius="13" Background="#DCE3EE">
+                            <Ellipse x:Name="Knob" Width="20" Height="20" Margin="3,0" HorizontalAlignment="Left" Fill="White" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="Tag" Value="{StaticResource True}">
-                                <Setter TargetName="Track" Property="Background" Value="{StaticResource OnGradient}" />
-                                <Setter TargetName="Track" Property="BorderThickness" Value="0" />
+                                <Setter TargetName="Track" Property="Background" Value="{StaticResource AccentBrush}" />
                                 <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
-                                <Setter TargetName="Knob" Property="Fill" Value="White" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -192,32 +245,36 @@
             </Setter>
         </Style>
 
-        <!-- ====== Большая кнопка питания ====== -->
+        <!-- ====== Большая белая кнопка питания с голубым свечением ====== -->
         <Style x:Key="PowerButton" TargetType="Button">
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Grid Width="210" Height="210">
-                            <Ellipse x:Name="Halo" Margin="-34" Opacity="0" RenderTransformOrigin="0.5,0.5" IsHitTestVisible="False">
+                        <Grid Width="220" Height="220">
+                            <Ellipse x:Name="Halo" Opacity="0.35" RenderTransformOrigin="0.5,0.5" IsHitTestVisible="False">
                                 <Ellipse.Fill>
                                     <RadialGradientBrush>
-                                        <GradientStop Color="#702EE6A6" Offset="0.5" />
-                                        <GradientStop Color="#002EE6A6" Offset="1" />
+                                        <GradientStop Color="#552F6BFF" Offset="0.55" />
+                                        <GradientStop Color="#002F6BFF" Offset="1" />
                                     </RadialGradientBrush>
                                 </Ellipse.Fill>
                                 <Ellipse.RenderTransform>
                                     <ScaleTransform x:Name="HaloScale" />
                                 </Ellipse.RenderTransform>
                             </Ellipse>
-                            <Ellipse x:Name="Ring" Fill="#11151D" Stroke="{StaticResource BorderBrush}" StrokeThickness="2" />
-                            <Ellipse x:Name="Core" Margin="20" Fill="{StaticResource OffGradient}" RenderTransformOrigin="0.5,0.5" />
-                            <Path x:Name="Icon" Data="{StaticResource PowerIcon}" Width="62" Height="62" Stretch="Uniform"
-                                  Stroke="{StaticResource Text2Brush}" StrokeThickness="7"
-                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" IsHitTestVisible="False" />
-                            <Ellipse x:Name="Spinner" Margin="4" Stroke="{StaticResource AccentBrush}" StrokeThickness="3"
-                                     StrokeDashArray="18 400" StrokeDashCap="Round" Visibility="Collapsed"
+                            <Ellipse x:Name="Ring" Margin="20" Fill="#66FFFFFF" Stroke="#D6E2FF" StrokeThickness="1" />
+                            <Ellipse x:Name="Core" Margin="34" Fill="White" RenderTransformOrigin="0.5,0.5">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect Color="#2F6BFF" BlurRadius="34" ShadowDepth="0" Opacity="0.18" />
+                                </Ellipse.Effect>
+                            </Ellipse>
+                            <Path x:Name="Icon" Data="{StaticResource PowerIcon}" Width="44" Height="44" Stretch="Uniform"
+                                  Stroke="#97A3B6" StrokeThickness="4.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  IsHitTestVisible="False" />
+                            <Ellipse x:Name="Spinner" Margin="27" Stroke="{StaticResource AccentBrush}" StrokeThickness="3"
+                                     StrokeDashArray="14 400" StrokeDashCap="Round" Visibility="Collapsed"
                                      RenderTransformOrigin="0.5,0.5" IsHitTestVisible="False">
                                 <Ellipse.RenderTransform>
                                     <RotateTransform x:Name="SpinnerAngle" />
@@ -226,15 +283,19 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <DataTrigger Binding="{Binding IsOn}" Value="True">
-                                <Setter TargetName="Core" Property="Fill" Value="{StaticResource OnGradient}" />
-                                <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource AccentBrush}" />
-                                <Setter TargetName="Icon" Property="Stroke" Value="White" />
+                                <Setter TargetName="Icon" Property="Stroke" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="Ring" Property="Stroke" Value="#BFD2FF" />
+                                <Setter TargetName="Core" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#2F6BFF" BlurRadius="40" ShadowDepth="0" Opacity="0.45" />
+                                    </Setter.Value>
+                                </Setter>
                                 <DataTrigger.EnterActions>
                                     <BeginStoryboard x:Name="Pulse">
                                         <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                            <DoubleAnimation Storyboard.TargetName="Halo" Storyboard.TargetProperty="Opacity" From="0.45" To="1" Duration="0:0:1.6" />
-                                            <DoubleAnimation Storyboard.TargetName="HaloScale" Storyboard.TargetProperty="ScaleX" From="0.94" To="1.04" Duration="0:0:1.6" />
-                                            <DoubleAnimation Storyboard.TargetName="HaloScale" Storyboard.TargetProperty="ScaleY" From="0.94" To="1.04" Duration="0:0:1.6" />
+                                            <DoubleAnimation Storyboard.TargetName="Halo" Storyboard.TargetProperty="Opacity" From="0.55" To="1" Duration="0:0:1.8" />
+                                            <DoubleAnimation Storyboard.TargetName="HaloScale" Storyboard.TargetProperty="ScaleX" From="0.96" To="1.04" Duration="0:0:1.8" />
+                                            <DoubleAnimation Storyboard.TargetName="HaloScale" Storyboard.TargetProperty="ScaleY" From="0.96" To="1.04" Duration="0:0:1.8" />
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </DataTrigger.EnterActions>
@@ -256,7 +317,7 @@
                                 </DataTrigger.ExitActions>
                             </DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Core" Property="Opacity" Value="0.92" />
+                                <Setter TargetName="Ring" Property="Fill" Value="#99FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Core" Property="RenderTransform">
@@ -273,8 +334,8 @@
 
         <!-- ====== Тонкая полоса прокрутки ====== -->
         <Style TargetType="ScrollBar">
-            <Setter Property="Width" Value="6" />
-            <Setter Property="MinWidth" Value="6" />
+            <Setter Property="Width" Value="5" />
+            <Setter Property="MinWidth" Value="5" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -284,7 +345,7 @@
                                 <Thumb>
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Border CornerRadius="3" Background="#33FFFFFF" />
+                                            <Border CornerRadius="3" Background="#CDD6E4" />
                                         </ControlTemplate>
                                     </Thumb.Template>
                                 </Thumb>

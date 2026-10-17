@@ -246,7 +246,7 @@ public sealed class InstallerTests : IDisposable
     [Fact]
     public void EnsureInstalled_RestoresOriginal_WhenWinwsWasReplaced()
     {
-        // Подменённый winws.exe запустился бы от имени SYSTEM — его надо вернуть из архива.
+        // Подменённый winws.exe запустился бы от имени SYSTEM - его надо вернуть из архива.
         var paths = ZapretInstaller.EnsureInstalled(() => File.OpenRead(ZapretCopy.ZipPath), _dir.Path);
         var original = File.ReadAllBytes(paths.WinwsExe);
         File.WriteAllText(paths.WinwsExe, "malware");
@@ -272,7 +272,7 @@ public sealed class InstallerTests : IDisposable
     [Fact]
     public void RemoveUntrusted_ReportsFalse_WhenDriverFileStaysLocked()
     {
-        // Загруженный WinDivert64.sys удалить нельзя — тогда папку забирают на месте, а не падают.
+        // Загруженный WinDivert64.sys удалить нельзя - тогда папку забирают на месте, а не падают.
         var untrusted = Directory.CreateDirectory(Path.Combine(_dir.Path, "ZapretApp"));
         using var locked = new FileStream(Path.Combine(untrusted.FullName, "WinDivert64.sys"), FileMode.Create, FileAccess.Write, FileShare.None);
 
@@ -285,7 +285,7 @@ public sealed class InstallerTests : IDisposable
         var paths = ZapretInstaller.EnsureInstalled(() => File.OpenRead(ZapretCopy.ZipPath), _dir.Path);
         File.Delete(paths.WinwsExe);
         Directory.Delete(paths.Lists, recursive: true);
-        // Драйвер загружен ядром: читать можно, перезаписать или удалить — нет.
+        // Драйвер загружен ядром: читать можно, перезаписать или удалить - нет.
         using var driverInUse = new FileStream(Path.Combine(paths.Bin, "WinDivert64.sys"), FileMode.Open, FileAccess.Read, FileShare.Read);
 
         ZapretInstaller.EnsureInstalled(() => File.OpenRead(ZapretCopy.ZipPath), _dir.Path);
@@ -306,6 +306,24 @@ public sealed class InstallerTests : IDisposable
 
         File.Exists(Path.Combine(paths.Bin, "version.dll")).Should().BeFalse("чужая DLL рядом с winws.exe загрузилась бы от SYSTEM");
         File.ReadAllText(Path.Combine(paths.Lists, "list-general-user.txt")).Should().Be("my.site");
+    }
+
+    [Fact]
+    public void NewZapretVersion_KeepsUserListsAndGameFilter_FromPreviousVersion()
+    {
+        // Старая версия с настройками пользователя.
+        var old = ZapretInstaller.EnsureInstalled(() => File.OpenRead(ZapretCopy.ZipPath), _dir.Path, "1.10.2");
+        UserLists.Ensure(old.Lists);
+        File.WriteAllText(Path.Combine(old.Lists, "list-general-user.txt"), "my.site");
+        new GameFilter(GameFilterMode.All, "1024-65535", "1024-65535").Save(old.GameFilterFile);
+
+        // В приложение вшили новую - при запуске она ставится рядом, старая потом удаляется.
+        var fresh = ZapretInstaller.EnsureInstalled(() => File.OpenRead(ZapretCopy.ZipPath), _dir.Path, "1.10.3");
+        ZapretInstaller.RemoveOtherVersions(_dir.Path, "1.10.3");
+
+        Directory.Exists(old.Root).Should().BeFalse();
+        File.ReadAllText(Path.Combine(fresh.Lists, "list-general-user.txt")).Should().Be("my.site");
+        GameFilter.Load(fresh.GameFilterFile).Mode.Should().Be(GameFilterMode.All);
     }
 
     [Fact]

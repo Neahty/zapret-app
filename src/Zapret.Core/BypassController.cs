@@ -8,7 +8,7 @@ public sealed record BypassStatus(ServiceState Service, string? Strategy, DateTi
 public enum StartupAction { None, Started, Installed }
 
 /// <summary>
-/// Включает и выключает обход. Обход живёт в службе Windows «zapret» с автозапуском —
+/// Включает и выключает обход. Обход живёт в службе Windows «zapret» с автозапуском -
 /// поэтому после перезагрузки он поднимается сам, без открытия приложения.
 /// Имя службы и значение в реестре те же, что у service.bat, так что они не конфликтуют.
 /// </summary>
@@ -77,7 +77,7 @@ public sealed class BypassController(
         }
         catch when (!settings.Enabled)
         {
-            // Обход был выключен — не оставляем службу с автозапуском, иначе после перезагрузки
+            // Обход был выключен - не оставляем службу с автозапуском, иначе после перезагрузки
             // он внезапно заработает, хотя приложение будет показывать «выключен».
             await TryAsync(() => services.DeleteAsync(ServiceName, CancellationToken.None));
             throw;
@@ -107,8 +107,8 @@ public sealed class BypassController(
     }
 
     /// <summary>
-    /// Вызывается при каждом запуске приложения: если обход должен быть включён, но не работает —
-    /// запускает или переустанавливает службу. Если пользователь выключил обход — ничего не трогает.
+    /// Вызывается при каждом запуске приложения: если обход должен быть включён, но не работает -
+    /// запускает или переустанавливает службу. Если пользователь выключил обход - ничего не трогает.
     /// </summary>
     public async Task<StartupAction> EnsureStartupStateAsync(CancellationToken ct = default)
     {
@@ -138,22 +138,6 @@ public sealed class BypassController(
     public void SetLaunchWithWindows(bool value) =>
         Save(Settings with { LaunchWithWindows = value });
 
-    /// <summary>
-    /// Готовит переход на новую версию zapret: останавливает обход и драйвер WinDivert старой версии
-    /// (его служба указывает на старый WinDivert64.sys) и запоминает новую версию. Саму службу
-    /// перенастроит следующий запуск приложения — путь к winws.exe у неё изменится.
-    /// </summary>
-    public async Task SwitchZapretVersionAsync(string version, CancellationToken ct = default)
-    {
-        await StopRuntimeAsync(ct);
-        foreach (var driver in WinDivertServices)
-        {
-            await TryAsync(() => services.StopAsync(driver, ct));
-            await TryAsync(() => services.DeleteAsync(driver, ct));
-        }
-        Save(Settings with { ZapretVersion = version });
-    }
-
     /// <summary>Перезапускает обход, чтобы подхватить новые настройки (игровой фильтр, IPSet).</summary>
     public async Task ReapplyAsync(CancellationToken ct = default)
     {
@@ -162,7 +146,7 @@ public sealed class BypassController(
     }
 
     /// <summary>
-    /// Перебирает стратегии и включает лучшую. Если ни одна не помогла — возвращает прежнюю.
+    /// Перебирает стратегии и включает лучшую. Если ни одна не помогла - возвращает прежнюю.
     /// </summary>
     public async Task<StrategyScore?> AutoSelectAsync(
         StrategyTester tester, IProgress<StrategyScore>? progress, CancellationToken ct = default)
@@ -183,13 +167,16 @@ public sealed class BypassController(
                 var score = await tester.TestAsync(strategy, paths, gameFilter, ct);
                 scores.Add(score);
                 progress?.Report(score);
-                if (score.AllPassed) break; // идеальная найдена — дальше можно не искать
+                if (score.AllPassed) break; // идеальная найдена - дальше можно не искать
             }
             best = StrategyTester.PickBest(scores);
+            // Лучшая становится стратегией по умолчанию: ниже она включается и сохраняется,
+            // а здесь запоминаем, что это именно победитель автоподбора.
+            if (best is not null) Save(Settings with { BestStrategy = best.Name, Strategy = best.Name });
         }
         finally
         {
-            // Восстановление не должно прятать исходную ошибку (например, отмену) — запоминаем отдельно.
+            // Восстановление не должно прятать исходную ошибку (например, отмену) - запоминаем отдельно.
             try
             {
                 if (best is not null || before.Enabled)
@@ -206,7 +193,7 @@ public sealed class BypassController(
     private async Task StopRuntimeAsync(CancellationToken ct)
     {
         await TryAsync(() => services.StopAsync(ServiceName, ct));
-        // Вдруг запущен обычный general.bat — он тоже держит WinDivert.
+        // Вдруг запущен обычный general.bat - он тоже держит WinDivert.
         await runner.RunAsync("taskkill", ["/IM", "winws.exe", "/F"], ct);
     }
 

@@ -25,7 +25,7 @@ public sealed class HttpConnectivityProbe : IConnectivityProbe, IDisposable
         {
             AllowAutoRedirect = false,
             UseProxy = false,
-            PooledConnectionLifetime = TimeSpan.Zero, // каждая проверка — новое соединение
+            PooledConnectionLifetime = TimeSpan.Zero, // каждая проверка - новое соединение
         })
         { Timeout = timeout };
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");

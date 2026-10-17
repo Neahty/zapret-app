@@ -40,7 +40,7 @@ public sealed class ProcessWinwsLauncher : IWinwsLauncher
         }
         catch
         {
-            // Отмена или ошибка — winws не должен остаться работать сам по себе.
+            // Отмена или ошибка - winws не должен остаться работать сам по себе.
             await running.DisposeAsync();
             throw;
         }
@@ -88,7 +88,7 @@ public sealed class StrategyTester(IWinwsLauncher launcher, IConnectivityProbe p
         }
     }
 
-    /// <summary>Лучшая — та, где открылось больше сайтов; при равенстве — где быстрее. Null, если не помогла ни одна.</summary>
+    /// <summary>Лучшая - та, где открылось больше сайтов; при равенстве - где быстрее. Null, если не помогла ни одна.</summary>
     public static StrategyScore? PickBest(IEnumerable<StrategyScore> scores) =>
         scores.Where(s => s.Passed > 0)
             .OrderByDescending(s => s.Passed)

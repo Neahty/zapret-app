@@ -5,7 +5,7 @@ public enum GameFilterMode { Disabled, All, Tcp, Udp }
 /// <summary>
 /// Игровой фильтр из service.bat: расширяет обход на порты игр.
 /// Хранится в utils\game_filter.enabled строками mode=/tcp=/udp=.
-/// Когда фильтр выключен, вместо портов подставляется «12» — как в оригинале.
+/// Когда фильтр выключен, вместо портов подставляется «12» - как в оригинале.
 /// </summary>
 public sealed record GameFilter(GameFilterMode Mode, string TcpRange, string UdpRange)
 {

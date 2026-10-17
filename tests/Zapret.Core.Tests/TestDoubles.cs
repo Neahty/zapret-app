@@ -18,7 +18,7 @@ public sealed class TempDir : IDisposable
     }
 }
 
-/// <summary>Свежая копия настоящего zapret 1.10.3 из архива — на каждый тест своя.</summary>
+/// <summary>Свежая копия настоящего zapret 1.10.3 из архива - на каждый тест своя.</summary>
 public sealed class ZapretCopy : IDisposable
 {
     public static string ZipPath => System.IO.Path.Combine(AppContext.BaseDirectory, "TestData", "zapret.zip");
@@ -114,7 +114,7 @@ public sealed class FakeProbe(Func<Uri, ProbeResult> handler) : IConnectivityPro
     public Task<ProbeResult> ProbeAsync(Uri url, CancellationToken ct = default) => Task.FromResult(Handler(url));
 }
 
-/// <summary>Вместо winws.exe — запоминает, с какими аргументами его «запустили».</summary>
+/// <summary>Вместо winws.exe - запоминает, с какими аргументами его «запустили».</summary>
 public sealed class FakeLauncher : IWinwsLauncher
 {
     public List<IReadOnlyList<string>> Started { get; } = [];

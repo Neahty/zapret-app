@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
 using System.Reflection;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -23,12 +22,11 @@ public partial class App : Application
     private HttpConnectivityProbe? _probe;
     private bool _hintShown;
     private bool _exiting;
-    private string _zapretVersion = ZapretInstaller.Version;
 
     public static string InstallRoot { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ZapretApp");
 
-    /// <summary>Копия приложения для автозапуска — в папке, куда без прав администратора не записать.</summary>
+    /// <summary>Копия приложения для автозапуска - в папке, куда без прав администратора не записать.</summary>
     private static string DeployRoot { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "ZapretApp");
 
@@ -70,7 +68,7 @@ public partial class App : Application
         _window.Closing += (_, args) =>
         {
             if (_exiting) return;
-            // Крестик прячет окно в трей — обход работает дальше.
+            // Крестик прячет окно в трей - обход работает дальше.
             args.Cancel = true;
             _window.Hide();
             if (!_hintShown) { _tray?.ShowHint("Окно свёрнуто в трей. Обход продолжает работать."); _hintShown = true; }
@@ -84,14 +82,13 @@ public partial class App : Application
         timer.Tick += (_, _) => vm.Tick();
         timer.Start();
 
-        vm.RestartRequested += Restart;
         await vm.InitializeAsync();
 
-        // Служба уже переключена на текущую версию — старые версии больше не нужны.
-        // Если запуск прошёл с ошибкой, оставляем старые версии — к ним ещё может вести служба.
-        var current = _zapretVersion;
+        // Когда в приложение вшита новая версия zapret, служба при запуске переключается на неё,
+        // и папки старых версий больше не нужны. Если запуск прошёл с ошибкой - не трогаем:
+        // к старой версии ещё может вести служба.
         if (vm.ErrorMessage is null)
-            _ = Task.Run(() => ZapretInstaller.RemoveOtherVersions(InstallRoot, current));
+            _ = Task.Run(() => ZapretInstaller.RemoveOtherVersions(InstallRoot, ZapretInstaller.Version));
     }
 
     private MainViewModel BuildViewModel()
@@ -104,18 +101,19 @@ public partial class App : Application
         {
             await runner.RunAsync("sc.exe", ["stop", BypassController.ServiceName]);
             await runner.RunAsync("taskkill", ["/IM", "winws.exe", "/F"]);
-            // WinDivert64.sys — драйвер ядра: он держит файл, пока его служба не остановлена.
+            // WinDivert64.sys - драйвер ядра: он держит файл, пока его служба не остановлена.
             await runner.RunAsync("sc.exe", ["stop", "WinDivert"]);
             await runner.RunAsync("sc.exe", ["stop", "WinDivert14"]);
         }).GetAwaiter().GetResult());
 
-        var store = new JsonSettingsStore(Path.Combine(InstallRoot, "settings.json"));
-        var updater = new ZapretUpdater(InstallRoot, new GitHubReleaseSource(new HttpClient { Timeout = TimeSpan.FromMinutes(2) }));
-        var (paths, version) = InstallZapret(store.Load().ZapretVersion, updater);
-        _zapretVersion = version;
+        var paths = ZapretInstaller.EnsureInstalled(
+            () => Assembly.GetExecutingAssembly().GetManifestResourceStream("zapret.zip")
+                  ?? throw new InvalidOperationException("Архив zapret не вшит в приложение"),
+            InstallRoot);
 
         var controller = new BypassController(
-            paths, StrategyCatalog.Load(paths.Root), new WindowsServiceControl(runner), runner, store, TimeProvider.System);
+            paths, StrategyCatalog.Load(paths.Root), new WindowsServiceControl(runner), runner,
+            new JsonSettingsStore(Path.Combine(InstallRoot, "settings.json")), TimeProvider.System);
 
         _probe = new HttpConnectivityProbe(TimeSpan.FromSeconds(6));
         var probe = _probe;
@@ -125,49 +123,7 @@ public partial class App : Application
             () => new StrategyTester(new ProcessWinwsLauncher(), probe, HealthChecker.AllUrls, TimeSpan.FromSeconds(2)),
             new DeployingAutostart(runner, Path.Combine(InstallRoot, "tmp")),
             new IpsetManager(paths.Lists),
-            TimeProvider.System,
-            updater,
-            version);
-    }
-
-    /// <summary>
-    /// Ставит версию zapret, скачанную кнопкой «Проверить обновления», если она новее встроенной;
-    /// иначе (или если скачанная повреждена) — встроенную в приложение.
-    /// </summary>
-    private static (ZapretPaths Paths, string Version) InstallZapret(string? downloaded, ZapretUpdater updater)
-    {
-        if (ZapretInstaller.IsValidVersion(downloaded) &&
-            ZapretUpdater.CompareVersions(downloaded!, ZapretInstaller.Version) > 0 &&
-            File.Exists(updater.PackageFor(downloaded!)))
-        {
-            try
-            {
-                return (ZapretInstaller.EnsureInstalled(() => File.OpenRead(updater.PackageFor(downloaded!)), InstallRoot, downloaded!), downloaded!);
-            }
-            catch (Exception e) when (e is IOException or InvalidDataException or AntivirusBlockedException)
-            {
-                Debug.WriteLine($"Скачанная версия {downloaded} не встала, берём встроенную: {e.Message}");
-            }
-        }
-
-        var embedded = ZapretInstaller.EnsureInstalled(
-            () => Assembly.GetExecutingAssembly().GetManifestResourceStream("zapret.zip")
-                  ?? throw new InvalidOperationException("Архив zapret не вшит в приложение"),
-            InstallRoot);
-        return (embedded, ZapretInstaller.Version);
-    }
-
-    /// <summary>Перезапуск на новой версии zapret после обновления.</summary>
-    private void Restart()
-    {
-        _exiting = true;
-        _tray?.Dispose();
-        // Новый экземпляр должен получить мьютекс «один на компьютер» — отпускаем его до запуска.
-        _singleInstance?.ReleaseMutex();
-        _singleInstance?.Dispose();
-        _singleInstance = null;
-        Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true });
-        Shutdown();
+            TimeProvider.System);
     }
 
     /// <summary>Перед включением автозапуска копирует приложение в Program Files и регистрирует копию.</summary>
@@ -183,7 +139,7 @@ public partial class App : Application
             new(runner, Path.Combine(DeployRoot, Path.GetFileName(Environment.ProcessPath!)), WindowsIdentity.GetCurrent().Name, xmlDir);
 
         /// <remarks>
-        /// Проверка вызывается при каждом запуске — заодно обновляем копию в Program Files: иначе ярлык
+        /// Проверка вызывается при каждом запуске - заодно обновляем копию в Program Files: иначе ярлык
         /// и автозапуск так и запускали бы старую сборку приложения.
         /// </remarks>
         public Task<bool> IsEnabledAsync(CancellationToken ct = default) => Target().IsEnabledAsync(ct);
@@ -215,7 +171,7 @@ public partial class App : Application
                     "Запрет", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
-            // Уже запущены мы сами — просто показываем то окно.
+            // Уже запущены мы сами - просто показываем то окно.
             if (EventWaitHandle.TryOpenExisting(ShowEventName, out var other)) other.Set();
             return false;
         }
@@ -223,7 +179,7 @@ public partial class App : Application
         _showEvent = EventWaitHandleAcl.Create(false, EventResetMode.AutoReset, ShowEventName, out var eventIsNew, eventSecurity);
         if (eventIsNew || IsTrustedOwner(_showEvent.GetAccessControl().GetOwner(typeof(SecurityIdentifier)))) return true;
 
-        // Событие заранее создал кто-то чужой и мог бы дёргать наше окно — работаем без него.
+        // Событие заранее создал кто-то чужой и мог бы дёргать наше окно - работаем без него.
         _showEvent.Dispose();
         _showEvent = null;
         return true;
@@ -288,7 +244,7 @@ public partial class App : Application
 
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        MessageBox.Show(e.Exception.Message, "Запрет — ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+        MessageBox.Show(e.Exception.Message, "Запрет - ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
         e.Handled = true;
     }
 
