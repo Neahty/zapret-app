@@ -44,9 +44,14 @@ public sealed partial class MainViewModel : ObservableObject
     private int _ticks;
     private int _healthVersion;
 
+    private readonly ZapretUpdater? _updater;
+
     public MainViewModel(BypassController controller, HealthChecker health, Func<StrategyTester> testerFactory,
-        IAppAutostart autostart, IpsetManager ipset, TimeProvider time)
+        IAppAutostart autostart, IpsetManager ipset, TimeProvider time,
+        ZapretUpdater? updater = null, string zapretVersion = ZapretInstaller.Version)
     {
+        _updater = updater;
+        ZapretVersion = zapretVersion;
         _controller = controller;
         _health = health;
         _testerFactory = testerFactory;
@@ -74,6 +79,15 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _launchWithWindows;
     [ObservableProperty] private bool _isAutoSelecting;
     [ObservableProperty] private string? _autoSelectProgress;
+
+    /// <summary>Установленная версия zapret — показывается в настройках.</summary>
+    public string ZapretVersion { get; }
+    [ObservableProperty] private bool _isUpdating;
+    [ObservableProperty] private string? _updateStatus;
+    [ObservableProperty] private bool _updateFailed;
+
+    /// <summary>Новая версия zapret установлена — приложению нужно перезапуститься на неё.</summary>
+    public event Action? RestartRequested;
 
     public string StatusTitle => IsBusy ? "Подождите…" : IsOn ? "Обход включён" : "Обход выключен";
 
@@ -163,6 +177,52 @@ public sealed partial class MainViewModel : ObservableObject
             item.Kind = r.Ok ? CheckKind.Good : CheckKind.Bad;
             item.Detail = r.Ok ? Format.Ms(r.Latency) : "недоступен";
         }
+    }
+
+    /// <summary>Есть ли новая версия zapret; если есть — скачать, установить и перезапуститься на неё.</summary>
+    [RelayCommand]
+    private async Task CheckUpdatesAsync()
+    {
+        if (_updater is null || IsBusy || IsUpdating) return;
+        IsUpdating = true;
+        IsBusy = true;
+        UpdateFailed = false;
+        UpdateStatus = "Проверяю…";
+        var switched = false;
+        try
+        {
+            var release = await _updater.CheckAsync(ZapretVersion);
+            if (release is null)
+            {
+                UpdateStatus = $"Установлена последняя версия {ZapretVersion}";
+                return;
+            }
+
+            UpdateStatus = $"Нашлась версия {release.Version}, скачиваю…";
+            await _updater.DownloadAndInstallAsync(release, _controller.Paths);
+            UpdateStatus = $"Переключаюсь на {release.Version}…";
+            await _controller.SwitchZapretVersionAsync(release.Version);
+            switched = true;
+            UpdateStatus = $"Версия {release.Version} установлена, перезапускаю…";
+        }
+        catch (Exception e)
+        {
+            UpdateFailed = true;
+            UpdateStatus = "Не удалось обновить: " + e.Message;
+            // Если сбой случился уже при переключении, обход мог остаться остановленным — поднимаем прежнюю версию.
+            if (_controller.Settings.Enabled && !_controller.GetStatus().IsOn)
+            {
+                try { await _controller.ReapplyAsync(); }
+                catch (Exception restore) { ErrorMessage = restore.Message; }
+            }
+        }
+        finally
+        {
+            IsBusy = false;
+            IsUpdating = false;
+            if (!switched) RefreshStatus();
+        }
+        if (switched) RestartRequested?.Invoke();
     }
 
     [RelayCommand]

@@ -130,9 +130,34 @@ public static class ZapretInstaller
     /// </summary>
     internal static readonly string[] CriticalFiles = ["winws.exe", "WinDivert64.sys", "WinDivert.dll", "cygwin1.dll"];
 
-    public static ZapretPaths EnsureInstalled(Func<Stream> openZip, string installRoot)
+    /// <summary>Версия как в релизах zapret: «1.10.3». Ничего другого в имя папки не попадает.</summary>
+    public static bool IsValidVersion(string? version) =>
+        version is { Length: > 0 and <= 32 } && System.Text.RegularExpressions.Regex.IsMatch(version, @"^\d+(\.\d+){0,3}$");
+
+    public static string FolderFor(string installRoot, string version) =>
+        IsValidVersion(version)
+            ? Path.Combine(installRoot, $"zapret-{version}")
+            : throw new ArgumentException($"Некорректная версия zapret: «{version}»", nameof(version));
+
+    /// <summary>Удаляет папки и архивы других версий zapret (после перехода на новую). Занятые — пропускает.</summary>
+    public static void RemoveOtherVersions(string installRoot, string currentVersion)
     {
-        var target = Path.Combine(installRoot, $"zapret-{Version}");
+        if (!Directory.Exists(installRoot)) return;
+        var keepDir = Path.GetFileName(FolderFor(installRoot, currentVersion));
+        foreach (var dir in Directory.EnumerateDirectories(installRoot, "zapret-*"))
+            if (!string.Equals(Path.GetFileName(dir), keepDir, StringComparison.OrdinalIgnoreCase))
+                TryDelete(dir);
+
+        var packages = Path.Combine(installRoot, "packages");
+        if (!Directory.Exists(packages)) return;
+        foreach (var zip in Directory.EnumerateFiles(packages))
+            if (!string.Equals(Path.GetFileName(zip), $"zapret-{currentVersion}.zip", StringComparison.OrdinalIgnoreCase))
+                try { File.Delete(zip); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+    }
+
+    public static ZapretPaths EnsureInstalled(Func<Stream> openZip, string installRoot, string version = Version)
+    {
+        var target = FolderFor(installRoot, version);
         var paths = new ZapretPaths(target);
         if (IsComplete(paths) && MatchesArchive(paths, openZip)) return paths;
 

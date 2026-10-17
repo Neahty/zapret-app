@@ -10,6 +10,8 @@ public sealed record AppSettings
     public DateTimeOffset? EnabledAt { get; init; }
     /// <summary>Запускать приложение (в трее) при входе в Windows.</summary>
     public bool LaunchWithWindows { get; init; } = true;
+    /// <summary>Скачанная обновлением версия zapret; null — используется встроенная в приложение.</summary>
+    public string? ZapretVersion { get; init; }
 }
 
 public interface ISettingsStore

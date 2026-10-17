@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using System.Reflection;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -22,6 +23,7 @@ public partial class App : Application
     private HttpConnectivityProbe? _probe;
     private bool _hintShown;
     private bool _exiting;
+    private string _zapretVersion = ZapretInstaller.Version;
 
     public static string InstallRoot { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ZapretApp");
@@ -82,7 +84,14 @@ public partial class App : Application
         timer.Tick += (_, _) => vm.Tick();
         timer.Start();
 
+        vm.RestartRequested += Restart;
         await vm.InitializeAsync();
+
+        // Служба уже переключена на текущую версию — старые версии больше не нужны.
+        // Если запуск прошёл с ошибкой, оставляем старые версии — к ним ещё может вести служба.
+        var current = _zapretVersion;
+        if (vm.ErrorMessage is null)
+            _ = Task.Run(() => ZapretInstaller.RemoveOtherVersions(InstallRoot, current));
     }
 
     private MainViewModel BuildViewModel()
@@ -100,14 +109,13 @@ public partial class App : Application
             await runner.RunAsync("sc.exe", ["stop", "WinDivert14"]);
         }).GetAwaiter().GetResult());
 
-        var paths = ZapretInstaller.EnsureInstalled(
-            () => Assembly.GetExecutingAssembly().GetManifestResourceStream("zapret.zip")
-                  ?? throw new InvalidOperationException("Архив zapret не вшит в приложение"),
-            InstallRoot);
+        var store = new JsonSettingsStore(Path.Combine(InstallRoot, "settings.json"));
+        var updater = new ZapretUpdater(InstallRoot, new GitHubReleaseSource(new HttpClient { Timeout = TimeSpan.FromMinutes(2) }));
+        var (paths, version) = InstallZapret(store.Load().ZapretVersion, updater);
+        _zapretVersion = version;
 
         var controller = new BypassController(
-            paths, StrategyCatalog.Load(paths.Root), new WindowsServiceControl(runner), runner,
-            new JsonSettingsStore(Path.Combine(InstallRoot, "settings.json")), TimeProvider.System);
+            paths, StrategyCatalog.Load(paths.Root), new WindowsServiceControl(runner), runner, store, TimeProvider.System);
 
         _probe = new HttpConnectivityProbe(TimeSpan.FromSeconds(6));
         var probe = _probe;
@@ -117,7 +125,49 @@ public partial class App : Application
             () => new StrategyTester(new ProcessWinwsLauncher(), probe, HealthChecker.AllUrls, TimeSpan.FromSeconds(2)),
             new DeployingAutostart(runner, Path.Combine(InstallRoot, "tmp")),
             new IpsetManager(paths.Lists),
-            TimeProvider.System);
+            TimeProvider.System,
+            updater,
+            version);
+    }
+
+    /// <summary>
+    /// Ставит версию zapret, скачанную кнопкой «Проверить обновления», если она новее встроенной;
+    /// иначе (или если скачанная повреждена) — встроенную в приложение.
+    /// </summary>
+    private static (ZapretPaths Paths, string Version) InstallZapret(string? downloaded, ZapretUpdater updater)
+    {
+        if (ZapretInstaller.IsValidVersion(downloaded) &&
+            ZapretUpdater.CompareVersions(downloaded!, ZapretInstaller.Version) > 0 &&
+            File.Exists(updater.PackageFor(downloaded!)))
+        {
+            try
+            {
+                return (ZapretInstaller.EnsureInstalled(() => File.OpenRead(updater.PackageFor(downloaded!)), InstallRoot, downloaded!), downloaded!);
+            }
+            catch (Exception e) when (e is IOException or InvalidDataException or AntivirusBlockedException)
+            {
+                Debug.WriteLine($"Скачанная версия {downloaded} не встала, берём встроенную: {e.Message}");
+            }
+        }
+
+        var embedded = ZapretInstaller.EnsureInstalled(
+            () => Assembly.GetExecutingAssembly().GetManifestResourceStream("zapret.zip")
+                  ?? throw new InvalidOperationException("Архив zapret не вшит в приложение"),
+            InstallRoot);
+        return (embedded, ZapretInstaller.Version);
+    }
+
+    /// <summary>Перезапуск на новой версии zapret после обновления.</summary>
+    private void Restart()
+    {
+        _exiting = true;
+        _tray?.Dispose();
+        // Новый экземпляр должен получить мьютекс «один на компьютер» — отпускаем его до запуска.
+        _singleInstance?.ReleaseMutex();
+        _singleInstance?.Dispose();
+        _singleInstance = null;
+        Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true });
+        Shutdown();
     }
 
     /// <summary>Перед включением автозапуска копирует приложение в Program Files и регистрирует копию.</summary>
@@ -132,7 +182,11 @@ public partial class App : Application
         private static AppAutostart Registered(ICommandRunner runner, string xmlDir) =>
             new(runner, Path.Combine(DeployRoot, Path.GetFileName(Environment.ProcessPath!)), WindowsIdentity.GetCurrent().Name, xmlDir);
 
-        public Task<bool> IsEnabledAsync(CancellationToken ct = default) => Registered(runner, xmlDir).IsEnabledAsync(ct);
+        /// <remarks>
+        /// Проверка вызывается при каждом запуске — заодно обновляем копию в Program Files: иначе ярлык
+        /// и автозапуск так и запускали бы старую сборку приложения.
+        /// </remarks>
+        public Task<bool> IsEnabledAsync(CancellationToken ct = default) => Target().IsEnabledAsync(ct);
 
         public Task SetAsync(bool enabled, CancellationToken ct = default) =>
             enabled ? Target().SetAsync(true, ct) : Registered(runner, xmlDir).SetAsync(false, ct);

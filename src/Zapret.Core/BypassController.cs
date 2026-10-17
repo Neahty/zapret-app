@@ -138,6 +138,22 @@ public sealed class BypassController(
     public void SetLaunchWithWindows(bool value) =>
         Save(Settings with { LaunchWithWindows = value });
 
+    /// <summary>
+    /// Готовит переход на новую версию zapret: останавливает обход и драйвер WinDivert старой версии
+    /// (его служба указывает на старый WinDivert64.sys) и запоминает новую версию. Саму службу
+    /// перенастроит следующий запуск приложения — путь к winws.exe у неё изменится.
+    /// </summary>
+    public async Task SwitchZapretVersionAsync(string version, CancellationToken ct = default)
+    {
+        await StopRuntimeAsync(ct);
+        foreach (var driver in WinDivertServices)
+        {
+            await TryAsync(() => services.StopAsync(driver, ct));
+            await TryAsync(() => services.DeleteAsync(driver, ct));
+        }
+        Save(Settings with { ZapretVersion = version });
+    }
+
     /// <summary>Перезапускает обход, чтобы подхватить новые настройки (игровой фильтр, IPSet).</summary>
     public async Task ReapplyAsync(CancellationToken ct = default)
     {

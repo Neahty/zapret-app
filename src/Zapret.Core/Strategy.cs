@@ -91,9 +91,17 @@ public static class StrategyCatalog
     public static IReadOnlyList<Strategy> Load(string root) =>
         Directory.EnumerateFiles(root, "*.bat")
             .Where(f => !Path.GetFileName(f).StartsWith("service", StringComparison.OrdinalIgnoreCase))
-            .Select(f => StrategyParser.Parse(Path.GetFileNameWithoutExtension(f), File.ReadAllText(f)))
+            .Select(TryParse)
+            .OfType<Strategy>()
             .OrderBy(s => NaturalKey(s.Name), StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+    /// <summary>В новой версии zapret может появиться служебный .bat без winws — его просто пропускаем.</summary>
+    private static Strategy? TryParse(string file)
+    {
+        try { return StrategyParser.Parse(Path.GetFileNameWithoutExtension(file), File.ReadAllText(file)); }
+        catch (FormatException) { return null; }
+    }
 
     /// <summary>Числа дополняются нулями: ALT2 идёт раньше ALT10.</summary>
     internal static string NaturalKey(string name) =>

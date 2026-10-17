@@ -309,6 +309,37 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Обновления zapret -->
+                <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                    <StackPanel>
+                        <Grid>
+                            <StackPanel>
+                                <TextBlock Text="Обновления zapret" Style="{StaticResource CardTitle}" />
+                                <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,0"
+                                           Text="{Binding ZapretVersion, StringFormat=Установлена версия {0}}" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,10"
+                                   Text="Проверит, не вышла ли новая версия у Flowseal. Если вышла — скачает, перенесёт ваши списки и настройки и перезапустится на ней." />
+                        <Button Style="{StaticResource AccentButton}" Content="Проверить обновления" Command="{Binding CheckUpdatesCommand}"
+                                IsEnabled="{Binding IsUpdating, Converter={StaticResource Not}}" />
+                        <TextBlock Text="{Binding UpdateStatus}" Margin="0,8,0,0" FontSize="13" TextWrapping="Wrap" HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   Visibility="{Binding UpdateStatus, Converter={StaticResource EmptyToCollapsed}}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="Foreground" Value="{StaticResource Text2Brush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding UpdateFailed}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource BadBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
                 <!-- Что это -->
                 <Border Style="{StaticResource Card}" Margin="0,10,0,0">
                     <StackPanel>
@@ -321,7 +352,8 @@
                 </Border>
 
                 <Grid Margin="4,14,4,0">
-                    <TextBlock Text="zapret-discord-youtube 1.10.3 (Flowseal)" Style="{StaticResource Caption}" FontSize="11" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding ZapretVersion, StringFormat=zapret-discord-youtube {0} (Flowseal)}" Style="{StaticResource Caption}"
+                               FontSize="11" VerticalAlignment="Center" />
                     <Button Style="{StaticResource FlatButton}" HorizontalAlignment="Right" Padding="10,6" Background="{StaticResource SurfaceBrush}"
                             Click="OpenFolder_Click" Content="Открыть папку" FontSize="12" />
                 </Grid>
