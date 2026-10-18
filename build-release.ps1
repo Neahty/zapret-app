@@ -10,9 +10,12 @@ $version = ($proj.Project.PropertyGroup | Where-Object { $_.Version } | Select-O
 $out = Join-Path $PSScriptRoot "dist\Zapret-$version"
 $zip = Join-Path $PSScriptRoot "dist\Zapret-$version-win-x64.zip"
 
-Write-Host "Тесты..."
-dotnet test tests\Zapret.Core.Tests -c Release --nologo
-if ($LASTEXITCODE -ne 0) { throw 'Тесты не прошли - архив не собираю.' }
+# Тесты лежат только у разработчика - в публичном репозитории их нет.
+if (Test-Path 'tests\Zapret.Core.Tests') {
+    Write-Host "Тесты..."
+    dotnet test tests\Zapret.Core.Tests -c Release --nologo
+    if ($LASTEXITCODE -ne 0) { throw 'Тесты не прошли - архив не собираю.' }
+}
 
 if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 if (Test-Path $zip) { Remove-Item $zip -Force }

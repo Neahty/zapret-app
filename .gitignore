@@ -7,3 +7,7 @@ TestResults/
 # Исходный архив пользователя; для сборки используется копия в src/Zapret.App/Assets
 /zapret-discord-youtube-*.zip
 dist/
+
+# Тесты и служебные утилиты живут только локально
+/tests/
+/tools/

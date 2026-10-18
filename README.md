@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 <img src="docs/banner.svg" alt="Запрет" width="100%">
 
@@ -14,7 +14,6 @@
 [![C#](https://img.shields.io/badge/C%23-WPF-239120?style=flat-square&logo=csharp&logoColor=white)](#-технологии)
 [![zapret](https://img.shields.io/badge/zapret--discord--youtube-1.10.3-2f6bff?style=flat-square)](https://github.com/Flowseal/zapret-discord-youtube)
 [![tg-ws-proxy](https://img.shields.io/badge/Telegram-tg--ws--proxy-26a5e4?style=flat-square&logo=telegram&logoColor=white)](https://github.com/Flowseal/tg-ws-proxy)
-[![Тесты](https://img.shields.io/badge/тесты-165%20✓-2e7d32?style=flat-square)](#-для-разработчиков)
 
 <br>
 
@@ -231,7 +230,6 @@ flowchart LR
 | ⚙️ Логика | ![.NET 8](https://img.shields.io/badge/.NET_8-512bd4?style=flat-square&logo=dotnet&logoColor=white) ![Службы Windows](https://img.shields.io/badge/Службы_Windows-0078d4?style=flat-square&logo=windows&logoColor=white) ![Планировщик задач](https://img.shields.io/badge/Планировщик_задач-0078d4?style=flat-square&logo=windows&logoColor=white) |
 | 🛡 Обход | ![zapret](https://img.shields.io/badge/zapret_(winws)-2f6bff?style=flat-square) ![WinDivert](https://img.shields.io/badge/WinDivert-2f6bff?style=flat-square) |
 | ✈️ Telegram | ![MTProto](https://img.shields.io/badge/MTProto_proxy-26a5e4?style=flat-square&logo=telegram&logoColor=white) ![WebSocket](https://img.shields.io/badge/WebSocket-26a5e4?style=flat-square) ![AES-CTR](https://img.shields.io/badge/AES--256--CTR-26a5e4?style=flat-square) |
-| 🧪 Тесты | ![xUnit](https://img.shields.io/badge/xUnit-5c2d91?style=flat-square) ![FluentAssertions](https://img.shields.io/badge/FluentAssertions-5c2d91?style=flat-square) |
 
 <br>
 
@@ -240,20 +238,10 @@ flowchart LR
 Нужен [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) и Windows.
 
 ```bash
-dotnet test tests/Zapret.Core.Tests
-```
-
-Тесты с настоящим Telegram (DC1, DC2, DC4 и медиа через встроенный прокси) включаются переменной окружения:
-
-```bash
-ZAPRET_NET_TESTS=1 dotnet test tests/Zapret.Core.Tests
-```
-
-```bash
 dotnet run --project src/Zapret.App
 ```
 
-Архив для раздела Releases собирает скрипт: прогоняет тесты, собирает автономный `Zapret.exe` и кладёт `dist\Zapret-<версия>-win-x64.zip`.
+Архив для раздела Releases собирает скрипт: он собирает автономный `Zapret.exe` и кладёт `dist\Zapret-<версия>-win-x64.zip`.
 
 ```bash
 powershell -ExecutionPolicy Bypass -File build-release.ps1
@@ -265,8 +253,6 @@ powershell -ExecutionPolicy Bypass -File build-release.ps1
 | `src/Zapret.Core/Telegram` | Прокси Telegram: обфускация MTProto, WebSocket до Telegram, служба `zapret-telegram` |
 | `src/Zapret.App` | Окно на WPF, значок в трее, запуск с правами администратора; `Program.cs` - тот же exe в роли службы Telegram |
 | `src/Zapret.App/Assets/zapret.zip` | Встроенный архив zapret-discord-youtube |
-| `tests/Zapret.Core.Tests` | 165 тестов, в том числе на настоящих стратегиях из архива и эталонных векторах AES |
-| `tools/Preview` | Снимки экранов без запуска службы - для проверки дизайна |
 
 <details>
 <summary><b>Как вшить новую версию zapret-discord-youtube</b></summary>
@@ -275,7 +261,7 @@ powershell -ExecutionPolicy Bypass -File build-release.ps1
 1. Скачайте `.zip` новой версии со [страницы релизов Flowseal](https://github.com/Flowseal/zapret-discord-youtube/releases).
 2. Замените им `src/Zapret.App/Assets/zapret.zip`.
 3. Поменяйте `Version` в классе `ZapretInstaller` (`src/Zapret.Core/Setup.cs`) на номер новой версии, а `Version` в `src/Zapret.App/Zapret.App.csproj` - на следующую версию приложения.
-4. Прогоните тесты и соберите архив.
+4. Соберите архив скриптом `build-release.ps1`.
 
 При следующем запуске приложение само поставит новую версию, перенесёт в неё свои списки сайтов и игровой фильтр, переключит службу и удалит старую.
 
