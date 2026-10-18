@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -30,7 +30,9 @@ public static class Program
             new DemoStore(), new DemoTime());
         var vm = new MainViewModel(controller, new HealthChecker(probe),
             () => new StrategyTester(new DemoLauncher(), probe, HealthChecker.AllUrls, TimeSpan.Zero),
-            new DemoAutostart(), new IpsetManager(paths.Lists), new DemoTime { Shift = TimeSpan.FromMinutes(42).Add(TimeSpan.FromSeconds(17)) });
+            new DemoAutostart(), new IpsetManager(paths.Lists), new DemoTime { Shift = TimeSpan.FromMinutes(42).Add(TimeSpan.FromSeconds(17)) },
+            new Zapret.Core.Telegram.TelegramController(services, () => @"C:\Program Files\ZapretApp\Zapret.exe", "1.1.0"),
+            new DemoTelegramCheck());
 
         vm.InitializeAsync().GetAwaiter().GetResult();
         vm.Tick();
@@ -132,13 +134,19 @@ public static class Program
 
 internal static class TreeHelpers { }
 
+internal sealed class DemoTelegramCheck : Zapret.Core.Telegram.ITelegramCheck
+{
+    public Task<ProbeResult?> CheckAsync(CancellationToken ct = default) =>
+        Task.FromResult<ProbeResult?>(new ProbeResult(true, TimeSpan.FromMilliseconds(214)));
+}
+
 internal sealed class DemoServices : IServiceControl
 {
     private readonly Dictionary<string, (ServiceState State, string Cmd)> _s = new();
     public bool FailToStart { get; set; }
     public ServiceState GetState(string name) => _s.TryGetValue(name, out var v) ? v.State : ServiceState.NotInstalled;
     public string? GetCommandLine(string name) => _s.TryGetValue(name, out var v) ? v.Cmd : null;
-    public Task InstallAsync(string name, string d, string desc, string cmd, CancellationToken ct = default) { _s[name] = (ServiceState.Stopped, cmd); return Task.CompletedTask; }
+    public Task InstallAsync(string name, string d, string desc, string cmd, CancellationToken ct = default, string? account = null) { _s[name] = (ServiceState.Stopped, cmd); return Task.CompletedTask; }
     public Task StartAsync(string name, CancellationToken ct = default) { if (!FailToStart) _s[name] = (ServiceState.Running, _s[name].Cmd); return Task.CompletedTask; }
     public Task StopAsync(string name, CancellationToken ct = default) { if (_s.TryGetValue(name, out var v)) _s[name] = (ServiceState.Stopped, v.Cmd); return Task.CompletedTask; }
     public Task DeleteAsync(string name, CancellationToken ct = default) { _s.Remove(name); return Task.CompletedTask; }

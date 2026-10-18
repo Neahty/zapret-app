@@ -51,13 +51,14 @@ public sealed class HttpConnectivityProbe : IConnectivityProbe, IDisposable
 
 public sealed record ServiceHealth(string Name, bool Ok, TimeSpan? Latency);
 
-/// <summary>Проверка того, ради чего ставят zapret: Discord и YouTube.</summary>
+/// <summary>Проверка того, ради чего ставят zapret: Discord, YouTube и SoundCloud.</summary>
 public sealed class HealthChecker(IConnectivityProbe probe)
 {
     public static IReadOnlyList<(string Name, Uri[] Urls)> Groups { get; } =
     [
         ("Discord", [new("https://discord.com"), new("https://gateway.discord.gg"), new("https://cdn.discordapp.com")]),
         ("YouTube", [new("https://www.youtube.com"), new("https://i.ytimg.com"), new("https://redirector.googlevideo.com")]),
+        ("SoundCloud", [new("https://soundcloud.com"), new("https://api-v2.soundcloud.com"), new("https://a-v2.sndcdn.com")]),
     ];
 
     public static IReadOnlyList<Uri> AllUrls { get; } = Groups.SelectMany(g => g.Urls).ToList();

@@ -16,7 +16,16 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <Product>Запрет</Product>
-    <Version>1.0.0</Version>
+    <!-- Сведения о файле (Свойства → Подробно): антивирусы и SmartScreen меньше доверяют exe без них. -->
+    <AssemblyTitle>Запрет - обход блокировок Discord, YouTube, SoundCloud и Telegram</AssemblyTitle>
+    <Description>Графическая оболочка для zapret-discord-youtube и прокси Telegram (tg-ws-proxy)</Description>
+    <Company>Neahty</Company>
+    <Authors>Neahty</Authors>
+    <Copyright>© 2026 Neahty. zapret, zapret-discord-youtube, tg-ws-proxy, WinDivert - на условиях своих лицензий</Copyright>
+    <RepositoryUrl>https://github.com/Neahty/zapret-app</RepositoryUrl>
+    <Version>1.1.0</Version>
+    <!-- Своя точка входа: тот же exe работает и службой прокси Telegram (Program.cs). -->
+    <StartupObject>Zapret.App.Program</StartupObject>
   </PropertyGroup>
 
   <!-- WinForms нужен только для значка в трее, а его using'и конфликтуют с WPF. -->

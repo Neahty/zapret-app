@@ -11,7 +11,9 @@ public interface IServiceControl
     ServiceState GetState(string name);
     /// <summary>Командная строка установленной службы (ImagePath) или null.</summary>
     string? GetCommandLine(string name);
-    Task InstallAsync(string name, string displayName, string description, string commandLine, CancellationToken ct = default);
+    /// <param name="account">Учётная запись службы; null - LocalSystem.</param>
+    Task InstallAsync(string name, string displayName, string description, string commandLine,
+        CancellationToken ct = default, string? account = null);
     Task StartAsync(string name, CancellationToken ct = default);
     Task StopAsync(string name, CancellationToken ct = default);
     Task DeleteAsync(string name, CancellationToken ct = default);
@@ -47,13 +49,15 @@ public sealed class WindowsServiceControl(ICommandRunner runner) : IServiceContr
         return key?.GetValue("ImagePath") as string;
     }
 
-    public async Task InstallAsync(string name, string displayName, string description, string commandLine, CancellationToken ct = default)
+    public async Task InstallAsync(string name, string displayName, string description, string commandLine,
+        CancellationToken ct = default, string? account = null)
     {
         // Уже установленную службу перенастраиваем: удалить и сразу создать заново Windows
         // часто не даёт («служба помечена для удаления»).
         var verb = GetState(name) == ServiceState.NotInstalled ? "create" : "config";
-        var create = await runner.RunAsync("sc.exe",
-            [verb, name, "binPath=", commandLine, "DisplayName=", displayName, "start=", "auto"], ct);
+        List<string> args = [verb, name, "binPath=", commandLine, "DisplayName=", displayName, "start=", "auto"];
+        if (account is not null) args.AddRange(["obj=", account, "password=", ""]);
+        var create = await runner.RunAsync("sc.exe", args, ct);
         if (!create.Success)
             throw new InvalidOperationException($"Не удалось установить службу {name}: {create.Output.Trim()}");
 

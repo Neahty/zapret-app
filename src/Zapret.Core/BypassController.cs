@@ -59,6 +59,7 @@ public sealed class BypassController(
     {
         var strategy = Resolve(strategyName);
         UserLists.Ensure(paths.Lists);
+        ExtraDomains.Ensure(paths.Lists);
         var commandLine = BuildCommandLine(strategy);
         var settings = Settings;
 
@@ -119,8 +120,11 @@ public sealed class BypassController(
         var expected = BuildCommandLine(strategy);
         var installed = services.GetCommandLine(ServiceName);
         var state = services.GetState(ServiceName);
+        // После обновления приложения в списке могут появиться новые сайты (SoundCloud) - winws читает
+        // список только при старте, поэтому тогда службу перезапускаем.
+        var listsChanged = ExtraDomains.Ensure(paths.Lists);
 
-        if (state != ServiceState.NotInstalled && installed == expected)
+        if (state != ServiceState.NotInstalled && installed == expected && !listsChanged)
         {
             if (state == ServiceState.Running) return StartupAction.None;
             await services.StartAsync(ServiceName, ct);
@@ -137,6 +141,18 @@ public sealed class BypassController(
 
     public void SetLaunchWithWindows(bool value) =>
         Save(Settings with { LaunchWithWindows = value });
+
+    public void SetTelegramEnabled(bool value) =>
+        Save(Settings with { TelegramEnabled = value });
+
+    /// <summary>Секрет прокси Telegram: при первом обращении создаётся и запоминается.</summary>
+    public string EnsureTelegramSecret()
+    {
+        if (Telegram.TelegramSecret.TryParse(Settings.TelegramSecret) is not null) return Settings.TelegramSecret!;
+        var secret = Telegram.TelegramSecret.Generate();
+        Save(Settings with { TelegramSecret = secret });
+        return secret;
+    }
 
     /// <summary>Перезапускает обход, чтобы подхватить новые настройки (игровой фильтр, IPSet).</summary>
     public async Task ReapplyAsync(CancellationToken ct = default)
@@ -161,6 +177,7 @@ public sealed class BypassController(
         {
             await StopRuntimeAsync(ct);
             UserLists.Ensure(paths.Lists);
+            ExtraDomains.Ensure(paths.Lists);
             foreach (var strategy in strategies)
             {
                 ct.ThrowIfCancellationRequested();

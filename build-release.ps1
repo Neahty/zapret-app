@@ -18,8 +18,9 @@ if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 if (Test-Path $zip) { Remove-Item $zip -Force }
 
 Write-Host "Сборка $version..."
+# Без сжатия внутри exe: сжатый single-file антивирусы принимают за «упакованный» файл и проверяют строже.
 dotnet publish src\Zapret.App -c Release -r win-x64 --self-contained true `
-    -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
+    -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=false `
     -p:DebugType=none -p:GenerateDocumentationFile=false -o $out --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Сборка не удалась.' }
 

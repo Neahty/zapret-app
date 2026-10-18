@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using Zapret.Core.ViewModels;
@@ -56,4 +57,27 @@ public partial class MainWindow : Window
 
     private void OpenFolder_Click(object sender, RoutedEventArgs e) =>
         Process.Start(new ProcessStartInfo("explorer.exe", App.InstallRoot) { UseShellExecute = true });
+
+    /// <summary>
+    /// Открывает tg://proxy-ссылку - Telegram Desktop сам предложит подключиться к прокси.
+    /// Через explorer.exe: так ссылка открывается без прав администратора, как обычный Telegram.
+    /// </summary>
+    private void ConnectTelegram_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm is null) return;
+        var psi = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"))
+        {
+            UseShellExecute = false,
+        };
+        psi.ArgumentList.Add(_vm.TelegramLink);
+        Process.Start(psi);
+        TelegramHint.Text = "В Telegram нажмите «Подключиться». Не открылся - скопируйте ссылку и отправьте её себе в «Избранное».";
+    }
+
+    private void CopyTelegramLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm is null) return;
+        Clipboard.SetText(_vm.TelegramLink);
+        TelegramHint.Text = "Ссылка скопирована. Отправьте её себе в «Избранное» в Telegram и нажмите на неё.";
+    }
 }

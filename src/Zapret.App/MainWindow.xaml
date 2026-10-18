@@ -155,7 +155,7 @@
                                 </Border>
                                 <TextBlock Style="{StaticResource Caption}" FontSize="14.5" LineHeight="23" Margin="0,12,0,0" Width="470"
                                            HorizontalAlignment="Left" local:Reveal.Delay="0.55"
-                                           Text="Без VPN и лишних настроек. Включается сам вместе с Windows." />
+                                           Text="А ещё SoundCloud и Telegram. Без VPN и лишних настроек. Включается сам вместе с Windows." />
                             </StackPanel>
 
                             <!-- Кнопка питания и состояние -->
@@ -216,63 +216,47 @@
                                                   StrokeThickness="1.9" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                                             <TextBlock Text="Проверка доступа" Style="{StaticResource CardTitle}" Margin="12,0,0,0" />
                                         </StackPanel>
-                                        <Button Style="{StaticResource SoftButton}" HorizontalAlignment="Right" Command="{Binding CheckHealthCommand}">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Style="{StaticResource SoftButton}" Margin="0,0,8,0" Click="ConnectTelegram_Click"
+                                                ToolTip="Добавить прокси в Telegram Desktop (один раз)"
+                                                Visibility="{Binding TelegramEnabled, Converter={StaticResource BoolToVisibility}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource SendIcon}" Width="13" Height="13" Style="{StaticResource StrokeIcon}" />
+                                                <TextBlock Text="Подключить Telegram" Margin="7,0,0,0" FontWeight="SemiBold"
+                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource SoftButton}" Command="{Binding CheckHealthCommand}">
                                             <StackPanel Orientation="Horizontal">
                                                 <Path Data="{StaticResource RefreshIcon}" Width="13" Height="13" Style="{StaticResource StrokeIcon}" />
                                                 <TextBlock Text="Проверить" Margin="7,0,0,0" FontWeight="SemiBold"
                                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                                             </StackPanel>
                                         </Button>
-                                    </Grid>
-                                    <Grid Margin="0,20,0,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="2*" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <ItemsControl ItemsSource="{Binding Health}">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <UniformGrid Rows="1" />
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="{x:Type vm:HealthItem}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <Border Width="38" Height="38" CornerRadius="12" Background="#F0F4FC" VerticalAlignment="Top">
-                                                            <Ellipse Width="9" Height="9" Fill="{Binding Kind, Converter={StaticResource CheckKindToBrush}}" />
-                                                        </Border>
-                                                        <StackPanel Margin="12,0,0,0">
-                                                            <TextBlock FontSize="12.5" Foreground="{StaticResource Text2Brush}">
-                                                                <Run Text="{Binding Name, Mode=OneWay}" />
-                                                            </TextBlock>
-                                                            <TextBlock Text="{Binding Detail}" FontSize="22" FontWeight="SemiBold" Margin="0,2,0,0" />
-                                                        </StackPanel>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                            <Border Width="38" Height="38" CornerRadius="12" Background="#F0F4FC" VerticalAlignment="Top">
-                                                <Path Data="{StaticResource ClockIcon}" Width="17" Height="17" Stretch="Uniform"
-                                                      Stroke="{StaticResource AccentBrush}" StrokeThickness="1.9" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                                            </Border>
-                                            <StackPanel Margin="12,0,0,0">
-                                                <TextBlock Text="Время работы" FontSize="12.5" Foreground="{StaticResource Text2Brush}" />
-                                                <TextBlock FontSize="22" FontWeight="SemiBold" Margin="0,2,0,0">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                                            <Setter Property="Text" Value="{Binding UptimeText}" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsOn}" Value="False">
-                                                                    <Setter Property="Text" Value="-" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </StackPanel>
                                         </StackPanel>
                                     </Grid>
+                                    <ItemsControl ItemsSource="{Binding Health}" Margin="0,20,0,0">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Rows="1" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:HealthItem}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="36" Height="36" CornerRadius="12" Background="#F0F4FC" VerticalAlignment="Top">
+                                                        <Ellipse Width="9" Height="9" Fill="{Binding Kind, Converter={StaticResource CheckKindToBrush}}" />
+                                                    </Border>
+                                                    <StackPanel Margin="11,0,0,0">
+                                                        <TextBlock FontSize="12.5" Foreground="{StaticResource Text2Brush}">
+                                                            <Run Text="{Binding Name, Mode=OneWay}" />
+                                                        </TextBlock>
+                                                        <TextBlock Text="{Binding Detail}" FontSize="19" FontWeight="SemiBold" Margin="0,2,0,0" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
                             </ContentControl>
                         </Grid>
@@ -499,7 +483,7 @@
                                           Stroke="{StaticResource AccentBrush}" StrokeThickness="1.8" StrokeLineJoin="Round" />
                                     <TextBlock Text="Автоподбор" FontSize="22" FontWeight="SemiBold" Margin="0,14,0,0" />
                                     <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,18"
-                                               Text="Приложение по очереди запустит стратегии и оставит ту, с которой Discord и YouTube открываются быстрее всего. Она станет основной." />
+                                               Text="Приложение по очереди запустит стратегии и оставит ту, с которой Discord, YouTube и SoundCloud открываются быстрее всего. Она станет основной." />
                                     <Button Style="{StaticResource PrimaryButton}" Content="Подобрать лучшую" Command="{Binding AutoSelectCommand}"
                                             Visibility="{Binding IsAutoSelecting, Converter={StaticResource EmptyToCollapsed}, ConverterParameter=invert}" />
                                     <Button Style="{StaticResource SoftButton}" Background="White" Height="42" Content="Остановить"
@@ -628,8 +612,32 @@
                             </UniformGrid>
                         </StackPanel>
 
-                        <ContentControl Grid.Column="1" Style="{StaticResource Card}" Padding="24,22" VerticalAlignment="Top"
+                        <StackPanel Grid.Column="1">
+                        <ContentControl Style="{StaticResource Card}" Background="{StaticResource LavenderBrush}" Padding="24,22"
                                         local:Reveal.Delay="0.3" local:Reveal.Kind="SlideRight">
+                            <StackPanel>
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Path Data="{StaticResource SendIcon}" Width="18" Height="18" Stretch="Uniform" Stroke="{StaticResource AccentBrush}"
+                                              StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                        <TextBlock Text="Telegram" Style="{StaticResource CardTitle}" Margin="10,0,0,0" />
+                                    </StackPanel>
+                                    <Button Style="{StaticResource SwitchButton}" HorizontalAlignment="Right"
+                                            Tag="{Binding TelegramEnabled}" Command="{Binding SetTelegramEnabledCommand}"
+                                            CommandParameter="{Binding TelegramEnabled, Converter={StaticResource Not}}" />
+                                </Grid>
+                                <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,16"
+                                           Text="Свой прокси на этом компьютере (по мотивам tg-ws-proxy): Telegram ходит через веб-адреса, которые не режут. Подключите один раз - дальше всё само." />
+                                <Button Style="{StaticResource PrimaryButton}" Content="Подключить Telegram" Click="ConnectTelegram_Click"
+                                        IsEnabled="{Binding TelegramEnabled}" />
+                                <Button Style="{StaticResource SoftButton}" Background="White" Margin="0,8,0,0" HorizontalAlignment="Stretch"
+                                        Content="Скопировать ссылку" Click="CopyTelegramLink_Click" IsEnabled="{Binding TelegramEnabled}" />
+                                <TextBlock x:Name="TelegramHint" Style="{StaticResource Caption}" FontSize="12.5" Margin="0,10,0,0" TextAlignment="Center"
+                                           Text="В Telegram нажмите «Подключиться»." />
+                            </StackPanel>
+                        </ContentControl>
+                        <ContentControl Style="{StaticResource Card}" Padding="24,22" Margin="0,18,0,0" VerticalAlignment="Top"
+                                        local:Reveal.Delay="0.4" local:Reveal.Kind="SlideRight">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <Path Data="{StaticResource ShieldCheckIcon}" Width="18" Height="18" Stretch="Uniform" Stroke="{StaticResource AccentBrush}"
@@ -639,9 +647,10 @@
                                 <TextBlock Style="{StaticResource Caption}" FontSize="13.5" LineHeight="21" Margin="0,14,0,0"
                                            Text="Провайдер узнаёт, на какой сайт вы идёте, по первым пакетам соединения - и обрывает его. Запрет (программа winws из zapret) немного «портит» эти пакеты: дробит их и подмешивает обманки. Провайдер их не понимает, а сайт - понимает." />
                                 <TextBlock Style="{StaticResource Caption}" FontSize="13.5" LineHeight="21" Margin="0,12,0,0"
-                                           Text="Это не VPN: трафик идёт напрямую, скорость и пинг почти не меняются, IP остаётся вашим. Работает для сайтов из списков - Discord, YouTube и других." />
+                                           Text="Это не VPN: трафик идёт напрямую, скорость и пинг почти не меняются, IP остаётся вашим. Работает для сайтов из списков - Discord, YouTube, SoundCloud и других." />
                             </StackPanel>
                         </ContentControl>
+                        </StackPanel>
                     </Grid>
                 </Grid>
             </Grid>

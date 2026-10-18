@@ -6,6 +6,7 @@ using System.Security.Principal;
 using System.Windows;
 using System.Windows.Threading;
 using Zapret.Core;
+using Zapret.Core.Telegram;
 using Zapret.Core.ViewModels;
 
 namespace Zapret.App;
@@ -106,6 +107,8 @@ public partial class App : Application
             await runner.RunAsync("sc.exe", ["stop", "WinDivert14"]);
         }).GetAwaiter().GetResult());
 
+        ZapretInstaller.PrepareLogDir(InstallRoot);
+
         var paths = ZapretInstaller.EnsureInstalled(
             () => Assembly.GetExecutingAssembly().GetManifestResourceStream("zapret.zip")
                   ?? throw new InvalidOperationException("Архив zapret не вшит в приложение"),
@@ -117,23 +120,30 @@ public partial class App : Application
 
         _probe = new HttpConnectivityProbe(TimeSpan.FromSeconds(6));
         var probe = _probe;
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0";
+        // Служба Telegram запускает копию приложения из Program Files - туда обычный пользователь не запишет.
+        var telegram = new TelegramController(new WindowsServiceControl(runner), DeployApp, version);
+        var telegramCheck = new LocalTelegramCheck(
+            () => controller.Settings is { Enabled: true, TelegramEnabled: true } ? controller.EnsureTelegramSecret() : null,
+            TimeSpan.FromSeconds(12));
         return new MainViewModel(
             controller,
             new HealthChecker(probe),
             () => new StrategyTester(new ProcessWinwsLauncher(), probe, HealthChecker.AllUrls, TimeSpan.FromSeconds(2)),
             new DeployingAutostart(runner, Path.Combine(InstallRoot, "tmp")),
             new IpsetManager(paths.Lists),
-            TimeProvider.System);
+            TimeProvider.System,
+            telegram,
+            telegramCheck);
     }
+
+    private static string DeployApp() =>
+        AppDeployment.EnsureDeployed(AppContext.BaseDirectory, DeployRoot, Path.GetFileName(Environment.ProcessPath!));
 
     /// <summary>Перед включением автозапуска копирует приложение в Program Files и регистрирует копию.</summary>
     private sealed class DeployingAutostart(ICommandRunner runner, string xmlDir) : IAppAutostart
     {
-        private AppAutostart Target()
-        {
-            var exe = AppDeployment.EnsureDeployed(AppContext.BaseDirectory, DeployRoot, Path.GetFileName(Environment.ProcessPath!));
-            return new AppAutostart(runner, exe, WindowsIdentity.GetCurrent().Name, xmlDir);
-        }
+        private AppAutostart Target() => new(runner, DeployApp(), WindowsIdentity.GetCurrent().Name, xmlDir);
 
         private static AppAutostart Registered(ICommandRunner runner, string xmlDir) =>
             new(runner, Path.Combine(DeployRoot, Path.GetFileName(Environment.ProcessPath!)), WindowsIdentity.GetCurrent().Name, xmlDir);

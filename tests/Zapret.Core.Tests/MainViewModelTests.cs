@@ -200,7 +200,7 @@ public sealed class MainViewModelTests : IDisposable
         _sut.IsAutoSelecting.Should().BeFalse();
         _sut.AutoSelectProgress.Should().Be("Лучшая: general - теперь она по умолчанию");
         _sut.Strategies[0].Kind.Should().Be(CheckKind.Good);
-        _sut.Strategies[0].Result.Should().Be("6/6 · 80 мс");
+        _sut.Strategies[0].Result.Should().Be($"{HealthChecker.AllUrls.Count}/{HealthChecker.AllUrls.Count} · 80 мс");
         _sut.IsOn.Should().BeTrue();
     }
 

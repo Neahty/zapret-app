@@ -12,6 +12,10 @@ public sealed record AppSettings
     public bool LaunchWithWindows { get; init; } = true;
     /// <summary>Победитель последнего автоподбора - помечается в списке стратегий.</summary>
     public string? BestStrategy { get; init; }
+    /// <summary>Прокси для Telegram Desktop - работает вместе с обходом.</summary>
+    public bool TelegramEnabled { get; init; } = true;
+    /// <summary>Секрет прокси Telegram (32 hex-символа), создаётся один раз - иначе Telegram пришлось бы подключать заново.</summary>
+    public string? TelegramSecret { get; init; }
 }
 
 public interface ISettingsStore

@@ -48,9 +48,13 @@ public sealed class FakeServiceControl : IServiceControl
     public ServiceState GetState(string name) => _services.TryGetValue(name, out var s) ? s.State : ServiceState.NotInstalled;
     public string? GetCommandLine(string name) => _services.TryGetValue(name, out var s) ? s.CommandLine : null;
 
-    public Task InstallAsync(string name, string displayName, string description, string commandLine, CancellationToken ct = default)
+    public Dictionary<string, string?> Accounts { get; } = new();
+
+    public Task InstallAsync(string name, string displayName, string description, string commandLine,
+        CancellationToken ct = default, string? account = null)
     {
         Calls.Add($"install {name}");
+        Accounts[name] = account;
         var state = _services.TryGetValue(name, out var s) ? s.State : ServiceState.Stopped;
         _services[name] = (state, commandLine);
         return Task.CompletedTask;

@@ -62,3 +62,42 @@ public static class UserLists
         if (!File.Exists(path)) File.WriteAllText(path, content);
     }
 }
+
+/// <summary>
+/// Сайты, которых нет в списках zapret-discord-youtube, но обход для них нужен: SoundCloud и сайт Telegram.
+/// Дописываются в list-general.txt - его читают все стратегии. Свой список пользователя
+/// (list-general-user.txt) не трогаем, а list-general.txt при новой версии zapret приходит из архива
+/// заново - поэтому проверяем при каждом включении.
+/// </summary>
+public static class ExtraDomains
+{
+    // Только ASCII: файл читает winws, а не .NET.
+    public const string Marker = "# Zapret app: SoundCloud, Telegram";
+
+    public static IReadOnlyList<string> All { get; } =
+    [
+        // SoundCloud: сайт, API, картинки и аудио (sndcdn.com), новый CDN потоков и короткие ссылки.
+        "soundcloud.com", "sndcdn.com", "soundcloud.cloud", "snd.sc",
+        // Telegram: сайт, веб-версия, ссылки t.me и CDN. Сам клиент ходит через прокси Telegram.
+        "telegram.org", "t.me", "telegram.me", "telesco.pe", "cdn-telegram.org",
+    ];
+
+    /// <returns>true - список дополнен, winws нужно перезапустить, чтобы он его перечитал.</returns>
+    public static bool Ensure(string listsDir)
+    {
+        var file = Path.Combine(listsDir, "list-general.txt");
+        var text = File.Exists(file) ? File.ReadAllText(file) : "";
+        var present = text.Split('\n').Select(l => l.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missing = All.Where(d => !present.Contains(d)).ToList();
+        if (missing.Count == 0) return false;
+
+        Directory.CreateDirectory(listsDir);
+        var lines = new List<string>();
+        // В исходном файле последней строке может не хватать перевода строки - иначе домены склеятся.
+        if (text.Length > 0 && !text.EndsWith('\n')) lines.Add("");
+        if (!present.Contains(Marker)) lines.Add(Marker);
+        lines.AddRange(missing);
+        File.AppendAllText(file, string.Join("\n", lines) + "\n");
+        return true;
+    }
+}

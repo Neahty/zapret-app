@@ -92,6 +92,7 @@ public static class AppDeployment
         var src = Path.GetFullPath(sourceDir).TrimEnd(Path.DirectorySeparatorChar);
         var dst = Path.GetFullPath(targetDir).TrimEnd(Path.DirectorySeparatorChar);
         if (string.Equals(src, dst, StringComparison.OrdinalIgnoreCase)) return Path.Combine(dst, exeName);
+        RemoveReplaced(dst);
 
         foreach (var file in AppFiles(src, exeName))
         {
@@ -100,9 +101,36 @@ public static class AppDeployment
             var existing = new FileInfo(to);
             if (existing.Exists && existing.Length == from.Length && existing.LastWriteTimeUtc == from.LastWriteTimeUtc) continue;
             Directory.CreateDirectory(Path.GetDirectoryName(to)!);
-            File.Copy(file, to, overwrite: true);
+            try
+            {
+                File.Copy(file, to, overwrite: true);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException && existing.Exists)
+            {
+                // Exe занят службой Telegram. Запущенный файл нельзя перезаписать, но можно переименовать:
+                // служба доработает на старом, а после перезапуска возьмёт новый.
+                var old = to + ReplacedSuffix + Guid.NewGuid().ToString("N");
+                File.Move(to, old);
+                try { File.Copy(file, to); }
+                catch
+                {
+                    // Без exe не запустятся ни служба, ни автозапуск - возвращаем старый.
+                    File.Move(old, to);
+                    throw;
+                }
+            }
         }
         return Path.Combine(dst, exeName);
+    }
+
+    internal const string ReplacedSuffix = ".old-";
+
+    /// <summary>Убирает старые exe, которые были заняты при прошлом обновлении. Ещё занятые - пропускает.</summary>
+    private static void RemoveReplaced(string dir)
+    {
+        if (!Directory.Exists(dir)) return;
+        foreach (var old in Directory.EnumerateFiles(dir, "*" + ReplacedSuffix + "*"))
+            try { File.Delete(old); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 
     private static readonly string[] AppExtensions = [".dll", ".json", ".pdb"];
@@ -430,6 +458,22 @@ public static class ZapretInstaller
         var owner = dir.GetAccessControl().GetOwner(typeof(SecurityIdentifier)) as SecurityIdentifier;
         return owner is not null &&
                (owner.IsWellKnown(WellKnownSidType.LocalSystemSid) || owner.IsWellKnown(WellKnownSidType.BuiltinAdministratorsSid));
+    }
+
+    /// <summary>
+    /// Папка журналов службы Telegram: служба работает от LocalService, поэтому ей - право на запись
+    /// только сюда, остальная папка приложения остаётся только для администраторов.
+    /// </summary>
+    public static string PrepareLogDir(string installRoot)
+    {
+        var dir = new DirectoryInfo(Path.Combine(installRoot, "logs"));
+        if (!dir.Exists) dir.Create();
+        var security = dir.GetAccessControl();
+        security.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.LocalServiceSid, null),
+            FileSystemRights.Modify, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+            PropagationFlags.None, AccessControlType.Allow));
+        dir.SetAccessControl(security);
+        return dir.FullName;
     }
 
     private static DirectorySecurity AdminOnlySecurity()

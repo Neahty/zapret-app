@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Zapret.Core.Telegram;
 
 namespace Zapret.Core.ViewModels;
 
@@ -32,7 +33,10 @@ public sealed partial class HealthItem(string name) : ObservableObject
     public string Name { get; } = name;
 
     /// <summary>Подпись над названием в карточке: что именно проверяется.</summary>
-    public string Caption => Name switch { "Discord" => "Голос и чаты", "YouTube" => "Видео", _ => "Сервис" };
+    public string Caption => Name switch
+    {
+        "Discord" => "Голос и чаты", "YouTube" => "Видео", "SoundCloud" => "Музыка", "Telegram" => "Сообщения", _ => "Сервис",
+    };
 
     [ObservableProperty] private CheckKind _kind;
     [ObservableProperty] private string _detail = "-";
@@ -46,11 +50,14 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IAppAutostart _autostart;
     private readonly IpsetManager _ipset;
     private readonly TimeProvider _time;
+    private readonly TelegramController? _telegram;
+    private readonly ITelegramCheck? _telegramCheck;
     private int _ticks;
     private int _healthVersion;
 
     public MainViewModel(BypassController controller, HealthChecker health, Func<StrategyTester> testerFactory,
-        IAppAutostart autostart, IpsetManager ipset, TimeProvider time)
+        IAppAutostart autostart, IpsetManager ipset, TimeProvider time,
+        TelegramController? telegram = null, ITelegramCheck? telegramCheck = null)
     {
         _controller = controller;
         _health = health;
@@ -58,10 +65,15 @@ public sealed partial class MainViewModel : ObservableObject
         _autostart = autostart;
         _ipset = ipset;
         _time = time;
+        _telegram = telegram;
+        _telegramCheck = telegramCheck;
 
         foreach (var s in controller.Strategies) Strategies.Add(new StrategyItem(s.Name));
         foreach (var g in HealthChecker.Groups) Health.Add(new HealthItem(g.Name));
+        if (telegramCheck is not null) Health.Add(new HealthItem(TelegramName));
     }
+
+    public const string TelegramName = "Telegram";
 
     public ObservableCollection<StrategyItem> Strategies { get; } = [];
     public ObservableCollection<HealthItem> Health { get; } = [];
@@ -79,6 +91,13 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _launchWithWindows;
     [ObservableProperty] private bool _isAutoSelecting;
     [ObservableProperty] private string? _autoSelectProgress;
+    [ObservableProperty] private bool _telegramEnabled;
+
+    /// <summary>Есть ли в приложении прокси Telegram (в тестах его может не быть).</summary>
+    public bool HasTelegram => _telegram is not null;
+
+    /// <summary>Ссылка tg://proxy, по которой Telegram Desktop сам добавляет наш прокси.</summary>
+    public string TelegramLink => TelegramSecret.Link(_controller.EnsureTelegramSecret());
 
     /// <summary>Вшитая в приложение версия zapret - показывается в настройках.</summary>
     public string ZapretVersion => ZapretInstaller.Version;
@@ -95,9 +114,11 @@ public sealed partial class MainViewModel : ObservableObject
         GameFilterMode = GameFilter.Load(_controller.Paths.GameFilterFile).Mode;
         IpsetMode = _ipset.GetMode();
         LaunchWithWindows = settings.LaunchWithWindows;
+        TelegramEnabled = settings.TelegramEnabled;
 
         // Главное: обход включён по умолчанию и сам поднимается при каждом запуске.
         await RunBusyAsync(() => _controller.EnsureStartupStateAsync());
+        await SyncTelegramAsync();
         await SyncAutostartAsync(settings.LaunchWithWindows);
         if (IsOn) await CheckHealthAsync();
     }
@@ -108,6 +129,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (IsBusy) return;
         var turnOn = !IsOn;
         await RunBusyAsync(() => turnOn ? _controller.EnableAsync(SelectedStrategy?.Name) : _controller.DisableAsync());
+        await SyncTelegramAsync();
         if (IsOn) await CheckHealthAsync();
         else ResetHealth();
     }
@@ -163,7 +185,9 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var version = ++_healthVersion;
         foreach (var h in Health) { h.Kind = CheckKind.Checking; h.Detail = "проверяю…"; }
+        var telegramTask = _telegramCheck?.CheckAsync() ?? Task.FromResult<ProbeResult?>(null);
         var results = await _health.CheckAsync();
+        var telegram = await telegramTask;
         // Пока шла проверка, обход могли выключить или запустить новую проверку - старый результат не показываем.
         if (version != _healthVersion) return;
         foreach (var r in results)
@@ -173,6 +197,35 @@ public sealed partial class MainViewModel : ObservableObject
             item.Kind = r.Ok ? CheckKind.Good : CheckKind.Bad;
             item.Detail = r.Ok ? Format.Ms(r.Latency) : "недоступен";
         }
+        if (Health.FirstOrDefault(h => h.Name == TelegramName) is { } tg)
+        {
+            tg.Kind = telegram is null ? CheckKind.None : telegram.Ok ? CheckKind.Good : CheckKind.Bad;
+            tg.Detail = telegram is null ? "выключен" : telegram.Ok ? Format.Ms(telegram.Latency) : "недоступен";
+        }
+    }
+
+    [RelayCommand]
+    private async Task SetTelegramEnabledAsync(bool value)
+    {
+        if (IsBusy) return;
+        _controller.SetTelegramEnabled(value);
+        TelegramEnabled = value;
+        ErrorMessage = null;
+        await SyncTelegramAsync();
+        if (IsOn) await CheckHealthAsync();
+    }
+
+    /// <summary>Прокси Telegram работает, пока включены и обход, и сам Telegram в настройках.</summary>
+    private async Task SyncTelegramAsync()
+    {
+        if (_telegram is null) return;
+        try
+        {
+            var settings = _controller.Settings;
+            if (settings.Enabled && settings.TelegramEnabled) await _telegram.EnsureAsync(_controller.EnsureTelegramSecret());
+            else await _telegram.DisableAsync();
+        }
+        catch (Exception e) { ErrorMessage ??= e.Message; }
     }
 
     [RelayCommand]
