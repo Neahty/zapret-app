@@ -40,6 +40,8 @@ public sealed partial class HealthItem(string name) : ObservableObject
 
     [ObservableProperty] private CheckKind _kind;
     [ObservableProperty] private string _detail = "-";
+    /// <summary>Подсказка при наведении: почему сервис недоступен.</summary>
+    [ObservableProperty] private string? _hint;
 }
 
 public sealed partial class MainViewModel : ObservableObject
@@ -92,6 +94,8 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isAutoSelecting;
     [ObservableProperty] private string? _autoSelectProgress;
     [ObservableProperty] private bool _telegramEnabled;
+    /// <summary>Почему не работает прокси Telegram. Отдельно от ErrorMessage: ту стирает любое следующее действие.</summary>
+    [ObservableProperty] private string? _telegramError;
 
     /// <summary>Есть ли в приложении прокси Telegram (в тестах его может не быть).</summary>
     public bool HasTelegram => _telegram is not null;
@@ -184,7 +188,10 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task CheckHealthAsync()
     {
         var version = ++_healthVersion;
-        foreach (var h in Health) { h.Kind = CheckKind.Checking; h.Detail = "проверяю…"; }
+        foreach (var h in Health) { h.Kind = CheckKind.Checking; h.Detail = "проверяю…"; h.Hint = null; }
+        // Служба Telegram могла не встать (или её остановили) - проверка заодно поднимает её снова.
+        if (_telegram is not null && _controller.Settings is { Enabled: true, TelegramEnabled: true } && !_telegram.IsRunning)
+            await SyncTelegramAsync();
         var telegramTask = _telegramCheck?.CheckAsync() ?? Task.FromResult<ProbeResult?>(null);
         var results = await _health.CheckAsync();
         var telegram = await telegramTask;
@@ -201,6 +208,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             tg.Kind = telegram is null ? CheckKind.None : telegram.Ok ? CheckKind.Good : CheckKind.Bad;
             tg.Detail = telegram is null ? "выключен" : telegram.Ok ? Format.Ms(telegram.Latency) : "недоступен";
+            tg.Hint = telegram is { Ok: false } ? TelegramError ?? telegram.Error : null;
         }
     }
 
@@ -224,8 +232,9 @@ public sealed partial class MainViewModel : ObservableObject
             var settings = _controller.Settings;
             if (settings.Enabled && settings.TelegramEnabled) await _telegram.EnsureAsync(_controller.EnsureTelegramSecret());
             else await _telegram.DisableAsync();
+            TelegramError = null;
         }
-        catch (Exception e) { ErrorMessage ??= e.Message; }
+        catch (Exception e) { TelegramError = e.Message; }
     }
 
     [RelayCommand]

@@ -42,6 +42,8 @@ public sealed class FakeServiceControl : IServiceControl
     public Dictionary<string, string> Tags { get; } = new();
     public List<string> Calls { get; } = [];
     public bool FailToStart { get; set; }
+    /// <summary>Сколько раз подряд установка падает - как «служба помечена для удаления».</summary>
+    public int FailInstallTimes { get; set; }
 
     public void Preinstall(string name, string commandLine, ServiceState state) => _services[name] = (state, commandLine);
 
@@ -54,6 +56,11 @@ public sealed class FakeServiceControl : IServiceControl
         CancellationToken ct = default, string? account = null)
     {
         Calls.Add($"install {name}");
+        if (FailInstallTimes > 0)
+        {
+            FailInstallTimes--;
+            throw new InvalidOperationException("Указанная служба была отмечена для удаления (1072)");
+        }
         Accounts[name] = account;
         var state = _services.TryGetValue(name, out var s) ? s.State : ServiceState.Stopped;
         _services[name] = (state, commandLine);

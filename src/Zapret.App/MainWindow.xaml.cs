@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using Zapret.Core.ViewModels;
@@ -59,19 +58,23 @@ public partial class MainWindow : Window
         Process.Start(new ProcessStartInfo("explorer.exe", App.InstallRoot) { UseShellExecute = true });
 
     /// <summary>
-    /// Открывает tg://proxy-ссылку - Telegram Desktop сам предложит подключиться к прокси.
-    /// Через explorer.exe: так ссылка открывается без прав администратора, как обычный Telegram.
+    /// Открывает tg://proxy-ссылку тем клиентом, что зарегистрирован в Windows (Telegram, AyuGram и т.п.) -
+    /// он сам предложит подключиться к прокси. Если Telegram уже запущен, ссылка уходит в него.
     /// </summary>
     private void ConnectTelegram_Click(object sender, RoutedEventArgs e)
     {
         if (_vm is null) return;
-        var psi = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"))
+        try
         {
-            UseShellExecute = false,
-        };
-        psi.ArgumentList.Add(_vm.TelegramLink);
-        Process.Start(psi);
-        TelegramHint.Text = "В Telegram нажмите «Подключиться». Не открылся - скопируйте ссылку и отправьте её себе в «Избранное».";
+            Process.Start(new ProcessStartInfo(_vm.TelegramLink) { UseShellExecute = true });
+            TelegramHint.Text = "В Telegram нажмите «Подключиться». Не открылся - скопируйте ссылку и отправьте её себе в «Избранное».";
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // Нет программы для ссылок tg:// - Telegram Desktop не установлен.
+            Clipboard.SetText(_vm.TelegramLink);
+            TelegramHint.Text = "Telegram Desktop не найден. Ссылка скопирована - откройте её в Telegram.";
+        }
     }
 
     private void CopyTelegramLink_Click(object sender, RoutedEventArgs e)

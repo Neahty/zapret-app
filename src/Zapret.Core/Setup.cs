@@ -120,7 +120,23 @@ public static class AppDeployment
                 }
             }
         }
+        RemoveStale(src, dst, exeName);
         return Path.Combine(dst, exeName);
+    }
+
+    /// <summary>
+    /// Убирает из копии библиотеки и настройки, которых нет в новой версии: иначе рядом с однофайловым
+    /// exe остались бы, например, Zapret.dll и deps.json от прежней сборки и сбили бы запуск.
+    /// </summary>
+    private static void RemoveStale(string src, string dst, string exeName)
+    {
+        if (!Directory.Exists(dst)) return;
+        foreach (var file in AppFiles(dst, exeName).ToList())
+        {
+            var relative = Path.GetRelativePath(dst, file);
+            if (string.Equals(relative, exeName, StringComparison.OrdinalIgnoreCase) || File.Exists(Path.Combine(src, relative))) continue;
+            try { File.Delete(file); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        }
     }
 
     internal const string ReplacedSuffix = ".old-";

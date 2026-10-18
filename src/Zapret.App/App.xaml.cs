@@ -122,7 +122,7 @@ public partial class App : Application
         var probe = _probe;
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0";
         // Служба Telegram запускает копию приложения из Program Files - туда обычный пользователь не запишет.
-        var telegram = new TelegramController(new WindowsServiceControl(runner), DeployApp, version);
+        var telegram = new TelegramController(new WindowsServiceControl(runner), DeployApp, version, AppLog);
         var telegramCheck = new LocalTelegramCheck(
             () => controller.Settings is { Enabled: true, TelegramEnabled: true } ? controller.EnsureTelegramSecret() : null,
             TimeSpan.FromSeconds(12));
@@ -135,6 +135,18 @@ public partial class App : Application
             TimeProvider.System,
             telegram,
             telegramCheck);
+    }
+
+    /// <summary>Журнал приложения (установка служб и т.п.) рядом с журналом прокси.</summary>
+    private static void AppLog(string message)
+    {
+        try
+        {
+            var file = new FileInfo(Path.Combine(InstallRoot, "logs", "app.log"));
+            if (file.Exists && file.Length > 1024 * 1024) file.Delete();
+            File.AppendAllText(file.FullName, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}  {message}{Environment.NewLine}");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 
     private static string DeployApp() =>

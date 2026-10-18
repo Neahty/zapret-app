@@ -680,3 +680,88 @@ public sealed class ReviewFixTests
         await server.DisposeAsync();
     }
 }
+
+public sealed class TelegramRecoveryTests
+{
+    private const string Exe = @"C:\Program Files\ZapretApp\Zapret.exe";
+    private const string Secret = "00112233445566778899aabbccddeeff";
+
+    [Fact]
+    public async Task Install_is_retried_while_service_is_marked_for_deletion()
+    {
+        var services = new FakeServiceControl { FailInstallTimes = 2 };
+        var log = new List<string>();
+        var sut = new TelegramController(services, () => Exe, "1.1.1", log.Add, TimeSpan.Zero);
+
+        await sut.EnsureAsync(Secret);
+
+        sut.IsRunning.Should().BeTrue();
+        log.Should().Contain(l => l.StartsWith("Попытка 1")).And.Contain("Служба запущена");
+        log.Should().NotContain(l => l.Contains(Secret), "секрет не пишем в журнал");
+    }
+
+    [Fact]
+    public async Task Power_off_and_on_reinstalls_even_if_windows_is_slow_to_delete()
+    {
+        var services = new FakeServiceControl();
+        var sut = new TelegramController(services, () => Exe, "1.1.1", retryDelay: TimeSpan.Zero);
+        await sut.EnsureAsync(Secret);
+        await sut.DisableAsync();
+
+        services.FailInstallTimes = 3;
+        await sut.EnsureAsync(Secret);
+
+        sut.IsRunning.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Health_check_brings_stopped_proxy_back_and_keeps_error_visible()
+    {
+        using var zapret = new ZapretCopy();
+        var services = new FakeServiceControl();
+        var controller = new BypassController(zapret.Paths, zapret.Strategies, services, new FakeRunner(),
+            new MemorySettingsStore(), new FakeTime(DateTimeOffset.UnixEpoch));
+        var telegram = new TelegramController(services, () => Exe, "1.1.1", retryDelay: TimeSpan.Zero);
+        var probe = FakeProbe.AllOk();
+        var vm = new Zapret.Core.ViewModels.MainViewModel(controller, new HealthChecker(probe),
+            () => new StrategyTester(new FakeLauncher(), probe, HealthChecker.AllUrls, TimeSpan.Zero),
+            new FakeAutostart(), new IpsetManager(zapret.Paths.Lists), new FakeTime(DateTimeOffset.UnixEpoch),
+            telegram, new LocalTelegramCheck(() => null, TimeSpan.Zero));
+        await vm.InitializeAsync();
+
+        // Кто-то остановил службу - проверка доступа поднимает её сама.
+        await services.StopAsync(TelegramController.ServiceName);
+        await vm.CheckHealthCommand.ExecuteAsync(null);
+        telegram.IsRunning.Should().BeTrue();
+        vm.TelegramError.Should().BeNull();
+
+        // А если не поднимается - причина остаётся на экране, даже после других действий.
+        await services.DeleteAsync(TelegramController.ServiceName);
+        services.FailInstallTimes = 100;
+        await vm.CheckHealthCommand.ExecuteAsync(null);
+        vm.TelegramError.Should().NotBeNull();
+        await vm.AutoSelectCommand.ExecuteAsync(null);
+        vm.TelegramError.Should().NotBeNull();
+    }
+}
+
+public sealed class DeploymentCleanupTests
+{
+    [Fact]
+    public void Stale_files_from_previous_build_are_removed()
+    {
+        using var src = new TempDir();
+        using var dst = new TempDir();
+        File.WriteAllText(src.File("Zapret.exe"), "single-file");
+        File.WriteAllText(src.File("wpfgfx_cor3.dll"), "native");
+        File.WriteAllText(dst.File("Zapret.dll"), "old debug build");
+        File.WriteAllText(dst.File("Preview.dll"), "tool");
+        File.WriteAllText(dst.File("Zapret.deps.json"), "{}");
+        File.WriteAllText(dst.File("notes.txt"), "чужой файл не трогаем");
+
+        AppDeployment.EnsureDeployed(src.Path, dst.Path, "Zapret.exe");
+
+        Directory.GetFiles(dst.Path).Select(Path.GetFileName).Should()
+            .BeEquivalentTo(["Zapret.exe", "wpfgfx_cor3.dll", "notes.txt"]);
+    }
+}

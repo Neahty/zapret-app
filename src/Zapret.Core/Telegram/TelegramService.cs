@@ -12,8 +12,17 @@ namespace Zapret.Core.Telegram;
 /// </summary>
 /// <param name="serviceExe">Возвращает путь к exe, из которого запускается служба (копия в Program Files).</param>
 /// <param name="appVersion">Версия приложения: после обновления служба перезапускается уже на новом exe.</param>
-public sealed class TelegramController(IServiceControl services, Func<string> serviceExe, string appVersion)
+/// <param name="log">Журнал действий со службой - чтобы по нему можно было понять, что пошло не так.</param>
+public sealed class TelegramController(IServiceControl services, Func<string> serviceExe, string appVersion,
+    Action<string>? log = null, TimeSpan? retryDelay = null)
 {
+    /// <summary>
+    /// Сразу после удаления Windows ещё несколько секунд держит службу «помеченной для удаления»
+    /// и не даёт создать её заново (ошибка 1072) - поэтому установку повторяем.
+    /// </summary>
+    private const int InstallAttempts = 6;
+    private readonly TimeSpan _retryDelay = retryDelay ?? TimeSpan.FromSeconds(2);
+
     public const string ServiceName = "zapret-telegram";
     public const string ServiceArg = "--telegram-proxy";
 
@@ -40,9 +49,22 @@ public sealed class TelegramController(IServiceControl services, Func<string> se
         }
 
         // Новая версия или секрет: служба должна перезапуститься с новой командной строкой.
+        log?.Invoke($"Ставлю службу {ServiceName}: {expected.Replace(secretHex, "<секрет>")}");
         await services.StopAsync(ServiceName, ct);
-        await services.InstallAsync(ServiceName, "zapret-telegram",
-            "Запрет: прокси для Telegram Desktop (tg-ws-proxy)", expected, ct, Account);
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await services.InstallAsync(ServiceName, "zapret-telegram",
+                    "Запрет: прокси для Telegram Desktop (tg-ws-proxy)", expected, ct, Account);
+                break;
+            }
+            catch (InvalidOperationException e) when (attempt < InstallAttempts)
+            {
+                log?.Invoke($"Попытка {attempt}: {e.Message}");
+                await Task.Delay(_retryDelay, ct);
+            }
+        }
         try
         {
             await services.StartAsync(ServiceName, ct);
@@ -50,9 +72,11 @@ public sealed class TelegramController(IServiceControl services, Func<string> se
         catch (Exception e) when (e is InvalidOperationException or System.ServiceProcess.TimeoutException)
         {
             // Сообщение WindowsServiceControl - про службу zapret и VPN; здесь причина почти всегда в порте.
+            log?.Invoke($"Служба не запустилась: {e.Message}");
             throw NotStarted(e);
         }
         if (services.GetState(ServiceName) != ServiceState.Running) throw NotStarted(null);
+        log?.Invoke("Служба запущена");
     }
 
     private static InvalidOperationException NotStarted(Exception? inner) => new(
@@ -60,6 +84,8 @@ public sealed class TelegramController(IServiceControl services, Func<string> se
 
     public async Task DisableAsync(CancellationToken ct = default)
     {
+        if (services.GetState(ServiceName) == ServiceState.NotInstalled) return;
+        log?.Invoke($"Удаляю службу {ServiceName}");
         await services.StopAsync(ServiceName, ct);
         await services.DeleteAsync(ServiceName, ct);
     }
