@@ -765,3 +765,33 @@ public sealed class DeploymentCleanupTests
             .BeEquivalentTo(["Zapret.exe", "wpfgfx_cor3.dll", "notes.txt"]);
     }
 }
+
+public sealed class UrlHandlerCommandTests
+{
+    private const string Link = "tg://proxy?server=127.0.0.1&port=1443&secret=dd00";
+
+    [Fact]
+    public void Quoted_exe_with_placeholder()
+    {
+        var r = UrlHandlerCommand.Build("\"C:\\Users\\me\\AyuGram\\AyuGram.exe\"  -- \"%1\"", Link);
+        Assert.Equal("C:\\Users\\me\\AyuGram\\AyuGram.exe", r!.Value.Exe);
+        Assert.Equal("-- \"" + Link + "\"", r.Value.Arguments);
+    }
+
+    [Fact]
+    public void Unquoted_exe_without_placeholder_appends_link()
+    {
+        var r = UrlHandlerCommand.Build("C:\\tg\\Telegram.exe", Link);
+        Assert.Equal("C:\\tg\\Telegram.exe", r!.Value.Exe);
+        Assert.Equal("\"" + Link + "\"", r.Value.Arguments);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\"C:\\broken")]
+    [InlineData("\"\" -- \"%1\"")]
+    public void Empty_or_broken_command_gives_null(string? command) =>
+        Assert.Null(UrlHandlerCommand.Build(command, Link));
+}

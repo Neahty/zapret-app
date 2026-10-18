@@ -23,7 +23,7 @@
     <Authors>Neahty</Authors>
     <Copyright>© 2026 Neahty. zapret, zapret-discord-youtube, tg-ws-proxy, WinDivert - на условиях своих лицензий</Copyright>
     <RepositoryUrl>https://github.com/Neahty/zapret-app</RepositoryUrl>
-    <Version>1.1.1</Version>
+    <Version>1.1.2</Version>
     <!-- Своя точка входа: тот же exe работает и службой прокси Telegram (Program.cs). -->
     <StartupObject>Zapret.App.Program</StartupObject>
   </PropertyGroup>

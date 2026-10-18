@@ -64,16 +64,25 @@ public partial class MainWindow : Window
     private void ConnectTelegram_Click(object sender, RoutedEventArgs e)
     {
         if (_vm is null) return;
+        bool opened;
         try
         {
-            Process.Start(new ProcessStartInfo(_vm.TelegramLink) { UseShellExecute = true });
-            TelegramHint.Text = "В Telegram нажмите «Подключиться». Не открылся - скопируйте ссылку и отправьте её себе в «Избранное».";
+            opened = TelegramLauncher.Open(_vm.TelegramLink);
         }
         catch (System.ComponentModel.Win32Exception)
         {
-            // Нет программы для ссылок tg:// - Telegram Desktop не установлен.
+            opened = false;
+        }
+
+        if (opened)
+        {
+            TelegramHint.Text = "В Telegram нажмите «Подключиться». Не открылся - скопируйте ссылку и отправьте её себе в «Избранное».";
+        }
+        else
+        {
+            // Нет рабочей программы для ссылок tg:// - Telegram Desktop не установлен или ассоциация сломана.
             Clipboard.SetText(_vm.TelegramLink);
-            TelegramHint.Text = "Telegram Desktop не найден. Ссылка скопирована - откройте её в Telegram.";
+            TelegramHint.Text = "Telegram Desktop не найден. Ссылка скопирована - отправьте её себе в «Избранное» и нажмите на неё.";
         }
     }
 
