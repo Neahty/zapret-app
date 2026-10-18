@@ -241,12 +241,6 @@ flowchart LR
 dotnet run --project src/Zapret.App
 ```
 
-Архив для раздела Releases собирает скрипт: он собирает автономный `Zapret.exe` и кладёт `dist\Zapret-<версия>-win-x64.zip`.
-
-```bash
-powershell -ExecutionPolicy Bypass -File build-release.ps1
-```
-
 | Папка | Что внутри |
 | :--- | :--- |
 | `src/Zapret.Core` | Вся логика: разбор стратегий из `.bat`, служба Windows, автоподбор, проверка доступа, настройки |
@@ -261,7 +255,7 @@ powershell -ExecutionPolicy Bypass -File build-release.ps1
 1. Скачайте `.zip` новой версии со [страницы релизов Flowseal](https://github.com/Flowseal/zapret-discord-youtube/releases).
 2. Замените им `src/Zapret.App/Assets/zapret.zip`.
 3. Поменяйте `Version` в классе `ZapretInstaller` (`src/Zapret.Core/Setup.cs`) на номер новой версии, а `Version` в `src/Zapret.App/Zapret.App.csproj` - на следующую версию приложения.
-4. Соберите архив скриптом `build-release.ps1`.
+4. Соберите приложение заново.
 
 При следующем запуске приложение само поставит новую версию, перенесёт в неё свои списки сайтов и игровой фильтр, переключит службу и удалит старую.
 
